@@ -1,0 +1,78 @@
+:root {
+  /* Color Palette */
+  --bg-main: #FFF7E1;
+  /* Cream */
+  --c-magenta: #FF00FF;
+  /* Primary Pop */
+  --c-yellow: #FFF000;
+  /* Action Yellow */
+  --c-green: #00FF9D;
+  /* Electric Green */
+  --c-cyan: #00D1FF;
+  /* Cyan Blue */
+  --c-black: #000000;
+  /* Solid Black */
+
+  --font-main: 'Outfit', system-ui, sans-serif;
+
+  --shadow-hard: 4px 4px 0px 0px var(--c-black);
+  --shadow-hard-hover: 6px 6px 0px 0px var(--c-black);
+  --border-black: 2px solid var(--c-black);
+  --radius-main: 12px;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-main);
+  background-color: var(--bg-main);
+  color: var(--c-black);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Utilities for Neo-Brutalist Look */
+.neo-box {
+  background: white;
+  border: var(--border-black);
+  box-shadow: var(--shadow-hard);
+  border-radius: var(--radius-main);
+}
+
+.neo-btn {
+  border: var(--border-black);
+  box-shadow: var(--shadow-hard);
+  border-radius: var(--radius-main);
+  transition: all 0.2s ease;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.neo-btn:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-hard-hover);
+}
+
+.neo-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px 0px var(--c-black);
+}
+
+.neo-input {
+  width: 100%;
+  padding: 12px;
+  border: var(--border-black);
+  border-radius: var(--radius-main);
+  font-size: 1rem;
+  background: white;
+  outline: none;
+  transition: box-shadow 0.2s;
+}
+
+.neo-input:focus {
+  box-shadow: var(--shadow-hard);
+}

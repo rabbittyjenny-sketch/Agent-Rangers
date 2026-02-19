@@ -1,0 +1,319 @@
+:root {
+    /* Color Palette */
+    --bg-main: #FFF7E1;
+    /* Cream */
+    --c-magenta: #FF00FF;
+    /* Primary Pop */
+    --c-yellow: #FFF000;
+    /* Action Yellow */
+    --c-green: #00FF9D;
+    /* Electric Green */
+    --c-cyan: #00D1FF;
+    /* Cyan Blue */
+    --c-black: #000000;
+    /* Solid Black */
+
+    --font-main: 'Outfit', system-ui, sans-serif;
+
+    --shadow-hard: 4px 4px 0px 0px var(--c-black);
+    --shadow-hard-hover: 6px 6px 0px 0px var(--c-black);
+    --border-black: 2px solid var(--c-black);
+    --radius-main: 12px;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-main);
+    background-color: var(--bg-main);
+    color: var(--c-black);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+}
+
+button {
+    cursor: pointer;
+    font-family: inherit;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* Utilities for Neo-Brutalist Look */
+.neo-box {
+    background: white;
+    border: var(--border-black);
+    box-shadow: var(--shadow-hard);
+    border-radius: var(--radius-main);
+}
+
+.neo-btn {
+    border: var(--border-black);
+    box-shadow: var(--shadow-hard);
+    border-radius: var(--radius-main);
+    transition: all 0.2s ease;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.neo-btn:hover:not(:disabled) {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-hard-hover);
+}
+
+.neo-btn:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px 0px var(--c-black);
+}
+
+.neo-input {
+    width: 100%;
+    padding: 12px;
+    border: var(--border-black);
+    border-radius: var(--radius-main);
+    font-size: 1rem;
+    background: white;
+    outline: none;
+    transition: box-shadow 0.2s;
+}
+
+.neo-input:focus {
+    box-shadow: var(--shadow-hard);
+}
+
+/* App Structure */
+.app-container {
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.main-card {
+    width: 100%;
+    max-width: 600px;
+    background: white;
+    padding: 2.5rem;
+    position: relative;
+}
+
+.header-section {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    position: relative;
+}
+
+.title-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.icon-box {
+    width: 50px;
+    height: 50px;
+    border: var(--border-black);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 3px 3px 0 #000;
+    transform: rotate(-3deg);
+}
+
+.main-title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    margin: 0;
+    text-transform: uppercase;
+    background: var(--c-yellow);
+    padding: 0 10px;
+    border: var(--border-black);
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
+    transform: rotate(1deg);
+    letter-spacing: -1px;
+}
+
+.subtitle {
+    color: #666;
+    font-weight: 600;
+    margin-top: 1rem;
+}
+
+.section-block {
+    margin-bottom: 2rem;
+}
+
+.section-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.upload-area {
+    border: 2px dashed #000;
+    background: #fafafa;
+    border-radius: var(--radius-main);
+    cursor: pointer;
+    transition: all 0.2s;
+    overflow: hidden;
+    position: relative;
+}
+
+.upload-area.empty {
+    padding: 3rem;
+    text-align: center;
+}
+
+.upload-area:hover {
+    background: #f0f0f0;
+    border-color: var(--c-magenta);
+}
+
+.preview-container {
+    width: 100%;
+    border-radius: var(--radius-main);
+    overflow: hidden;
+    position: relative;
+}
+
+.preview-img {
+    width: 100%;
+    display: block;
+}
+
+.preview-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.upload-area:hover .preview-overlay {
+    opacity: 1;
+}
+
+/* Mood Grid */
+.mood-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+@media (min-width: 500px) {
+    .mood-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+.mood-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 5px;
+    height: 80px;
+    font-size: 0.8rem;
+}
+
+.mood-emoji {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+}
+
+/* Slider */
+.label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.level-badge {
+    padding: 4px 12px;
+    font-weight: 800;
+    border: 2px solid #000;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    box-shadow: 2px 2px 0 #000;
+}
+
+.slider-wrapper {
+    padding: 0 10px;
+}
+
+.custom-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 12px;
+    background: #000;
+    border-radius: 99px;
+    outline: none;
+    margin-bottom: 10px;
+}
+
+.custom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    background: var(--c-magenta);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 0 2px #000;
+}
+
+.slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #666;
+}
+
+/* Submit Button */
+.submit-btn {
+    width: 100%;
+    padding: 1.25rem;
+    background: var(--c-magenta);
+    color: white;
+    font-size: 1.2rem;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 1rem;
+}
+
+.submit-btn:hover:not(:disabled) {
+    background: #e600e6;
+}
+
+.submit-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: var(--shadow-hard);
+}
+
+.footer-copyright {
+    text-align: center;
+    font-size: 0.8rem;
+    margin-top: 2rem;
+    color: #888;
+    font-weight: 600;
+}
