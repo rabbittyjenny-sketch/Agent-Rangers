@@ -1,277 +1,307 @@
-import React, { useState, useRef } from 'react';
-import { Camera, Sparkles, Loader2, Zap, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 
-const CaptionFactoryUpload = () => {
-    const [image, setImage] = useState(null);
-    const [imagePreview, setImagePreview] = useState(null);
-    const [imageBase64, setImageBase64] = useState(null);
-    const [mood, setMood] = useState('VIBRANT');
-    const [multilingualLevel, setMultilingualLevel] = useState(50);
-    const [captionText, setCaptionText] = useState('');
-    const [loading, setLoading] = useState(false);
-    const fileInputRef = useRef(null);
+// Import new components
+import Hero from './components/Hero';
+import AgentsGrid from './components/AgentsGrid';
+import Onboarding from './components/Onboarding';
 
-    // Initialize LIFF
-    React.useEffect(() => {
-        const initLiff = async () => {
-            try {
-                if (window.liff) {
-                    await window.liff.init({ liffId: '2008873573-XJ5aVkGk' }); // Updated LIFF ID
-                    if (!window.liff.isLoggedIn()) {
-                        window.liff.login();
-                    }
-                }
-            } catch (error) {
-                console.error('LIFF Init failed:', error);
-            }
-        };
-        initLiff();
-    }, []);
+// Import legacy component (kept for backward compatibility)
+import CaptionFactoryUpload from './components/CaptionFactory';
 
-    const moods = [
-        { id: 'VIBRANT', label: 'Vibrant', emoji: '✨', color: 'var(--c-magenta)' },
-        { id: 'CALM', label: 'Calm', emoji: '🌊', color: 'var(--c-cyan)' },
-        { id: 'FUN', label: 'Fun', emoji: '🎉', color: 'var(--c-yellow)' },
-        { id: 'LUXURY', label: 'Luxury', emoji: '👑', color: '#9d4edd' },
-        { id: 'AESTHETIC', label: 'Aesthetic', emoji: '🎨', color: 'var(--c-green)' }
-    ];
+// Import services
+import { orchestratorEngine } from './services/orchestratorEngine';
+import { aiService } from './services/aiService';
 
-    const handleImageUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            if (file.size > 10 * 1024 * 1024) {
-                alert('ขนาดไฟล์ใหญ่เกิน 10MB กรุณาเลือกไฟล์ที่เล็กกว่า');
-                return;
-            }
+const App = () => {
+  const [currentView, setCurrentView] = useState('hero'); // hero, agents, onboarding, caption-factory
+  const [selectedCluster, setSelectedCluster] = useState(null);
+  const [masterContext, setMasterContext] = useState(null);
+  const [systemReady, setSystemReady] = useState(false);
 
-            setImage(file);
+  // Load Master Context from localStorage on mount
+  useEffect(() => {
+    const savedContext = localStorage.getItem('socialFactory_masterContext');
+    if (savedContext) {
+      try {
+        const context = JSON.parse(savedContext);
+        setMasterContext(context);
+        orchestratorEngine.setMasterContext(context);
+        aiService.initialize(context);
+        setSystemReady(true);
+      } catch (error) {
+        console.error('Failed to load Master Context:', error);
+      }
+    }
+  }, []);
 
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const result = reader.result;
-                setImagePreview(result);
-                const base64String = result.split(',')[1];
-                setImageBase64(base64String);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+  // Handle Cluster Selection
+  const handleSelectCluster = (clusterId) => {
+    setSelectedCluster(clusterId);
+    setCurrentView('agents');
+  };
 
-    const getMultilingualLabel = () => {
-        if (multilingualLevel < 25) return 'Light';
-        if (multilingualLevel < 50) return 'Medium';
-        if (multilingualLevel < 75) return 'High';
-        return 'Heavy';
-    };
+  // Handle Onboarding Start
+  const handleStartOnboarding = () => {
+    setCurrentView('onboarding');
+  };
 
-    const handleSubmit = async () => {
-        if (!image || !imageBase64) {
-            alert('กรุณาอัพโหลดรูปภาพก่อนค่ะ 📸');
-            return;
-        }
+  // Handle Onboarding Complete
+  const handleOnboardingComplete = (context) => {
+    // Save to localStorage
+    localStorage.setItem('socialFactory_masterContext', JSON.stringify(context));
 
-        setLoading(true);
+    // Initialize services with the new context
+    setMasterContext(context);
+    orchestratorEngine.setMasterContext(context);
+    aiService.initialize(context);
+    setSystemReady(true);
 
-        try {
-            // Optional LIFF integration
-            let userId = 'web-user';
-            let displayName = 'Web User';
+    // Show success message and return to hero
+    alert(`✅ Onboarding Complete!\n\nBrand: ${context.brandNameTh}\nSystem is ready to help you!`);
+    setCurrentView('hero');
+  };
 
-            if (window.liff && window.liff.isLoggedIn()) {
-                try {
-                    const profile = await window.liff.getProfile();
-                    userId = profile.userId;
-                    displayName = profile.displayName;
-                } catch (liffError) {
-                    console.warn('LIFF profile fetch failed, using defaults:', liffError);
-                }
-            }
+  // Handle Onboarding Cancel
+  const handleOnboardingCancel = () => {
+    setCurrentView('hero');
+  };
 
-            const webhookData = {
-                userId: userId,
-                displayName: displayName,
-                image: imageBase64,
-                check_in: '',
-                mood: mood,
-                user_words: captionText,
-                multilingual_level: multilingualLevel,
-                mime_type: image.type, // ส่งประเภทไฟล์ไปด้วย (image/jpeg หรือ image/png)
-                timestamp: new Date().toISOString()
-            };
+  // Handle Agent Selection
+  const handleSelectAgent = (agentId) => {
+    console.log('Selected agent:', agentId);
+    // In a real implementation, this would open a chat interface
+    // For now, we're showing the chat in AgentsGrid component
+  };
 
-            const WEBHOOK_URL = 'https://hook.us2.make.com/e7yel6e6t3ouyf8sv3dbni25nap685tf';
+  // Handle Navigation Back
+  const handleBack = () => {
+    setSelectedCluster(null);
+    setCurrentView('hero');
+  };
 
-            const response = await fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(webhookData)
-            });
+  // Render different views
+  const renderView = () => {
+    switch (currentView) {
+      case 'hero':
+        return (
+          <Hero
+            onSelectCluster={handleSelectCluster}
+            onStartOnboarding={handleStartOnboarding}
+          />
+        );
 
-            if (!response.ok) {
-                throw new Error('Failed to process');
-            }
+      case 'agents':
+        return (
+          <AgentsGrid
+            clusterId={selectedCluster}
+            onBack={handleBack}
+            onSelectAgent={handleSelectAgent}
+          />
+        );
 
-            alert('✨ ขอบคุณค่ะ! กำลังประมวลผล...\n\nเราจะส่งแคปชั่นให้คุณในแชทภายใน 10-15 วินาที 💖');
+      case 'onboarding':
+        return (
+          <Onboarding
+            onComplete={handleOnboardingComplete}
+            onCancel={handleOnboardingCancel}
+          />
+        );
 
-            if (window.liff && window.liff.isInClient()) {
-                window.liff.closeWindow();
-            }
+      case 'caption-factory':
+        return <CaptionFactoryUpload />;
 
-            setLoading(false);
-        } catch (error) {
-            console.error('Error:', error);
-            alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้งค่ะ 🙏\n' + error.message);
-            setLoading(false);
-        }
-    };
+      default:
+        return (
+          <Hero
+            onSelectCluster={handleSelectCluster}
+            onStartOnboarding={handleStartOnboarding}
+          />
+        );
+    }
+  };
 
-    return (
-        <div className="app-container">
-            <div className="main-card neo-box">
-                {/* Header */}
-                <div className="header-section" style={{ position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: '-10px', right: '0', zIndex: 10 }}>
-                        <img src="/ideas365-logo.png" alt="iDEAS365" style={{ height: '50px', width: 'auto' }} />
-                    </div>
-                    <div className="title-wrapper">
-                        <div className="icon-box" style={{ background: 'var(--c-magenta)' }}>
-                            <Camera size={28} color="white" strokeWidth={2.5} />
-                        </div>
-                        <h1 className="main-title">CAPTION FACTORY</h1>
-                    </div>
-                </div>
+  return (
+    <div className="app-wrapper">
+      {/* Global Header */}
+      <header className="app-header">
+        <div className="header-content">
+          <button
+            className="brand-logo"
+            onClick={() => setCurrentView('hero')}
+            style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+          >
+            <img src="/ideas365-logo.png" alt="iDEAS365" style={{ height: '40px' }} />
+          </button>
 
-                <div className="section-block">
-                    <label className="section-label">
-                        <Camera size={20} />
-                        อัพโหลดรูปภาพ
-                    </label>
-                    <div
-                        onClick={() => fileInputRef.current?.click()}
-                        className={`upload-area ${!imagePreview ? 'empty' : ''}`}
-                    >
-                        {imagePreview ? (
-                            <div className="preview-container">
-                                <img src={imagePreview} alt="Preview" className="preview-img" />
-                                <div className="preview-overlay">
-                                    <span className="neo-btn" style={{ background: 'var(--c-yellow)', fontSize: '0.8rem', padding: '8px 16px' }}>
-                                        คลิกเพื่อเปลี่ยนรูป
-                                    </span>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="upload-placeholder">
-                                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                    <ImageIcon size={48} color="#000" strokeWidth={1} style={{ marginBottom: '1rem' }} />
-                                </div>
-                                <p style={{ fontWeight: 600, margin: 0 }}>คลิกเพื่ออัพโหลดรูป</p>
-                                <p style={{ fontSize: '0.8rem', opacity: 0.6, margin: '5px 0 0 0' }}>JPG, PNG (สูงสุด 10MB)</p>
-                            </div>
-                        )}
-                    </div>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/jpeg,image/jpg,image/png"
-                        onChange={handleImageUpload}
-                        style={{ display: 'none' }}
-                    />
-                </div>
+          <nav className="header-nav">
+            {systemReady && masterContext && (
+              <div className="context-badge">
+                <span className="badge-label">Brand:</span>
+                <span className="badge-value">{masterContext.brandNameTh}</span>
+              </div>
+            )}
 
-                <div className="section-block">
-                    <label className="section-label">
-                        <Sparkles size={20} />
-                        Mood & Vibe
-                    </label>
-                    <div className="mood-grid">
-                        {moods.map((m) => (
-                            <button
-                                key={m.id}
-                                onClick={() => setMood(m.id)}
-                                className="mood-btn neo-btn"
-                                style={{
-                                    background: mood === m.id ? m.color : '#fff',
-                                    transform: mood === m.id ? 'translate(-2px, -2px)' : 'none',
-                                    boxShadow: mood === m.id ? 'var(--shadow-hard-hover)' : 'var(--shadow-hard)'
-                                }}
-                            >
-                                <span className="mood-emoji">{m.emoji}</span>
-                                <span className="mood-label">{m.label}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="section-block">
-                    <div className="label-row">
-                        <label className="section-label">
-                            <Zap size={20} />
-                            Multilingual Level
-                        </label>
-                        <span className="level-badge" style={{ background: 'var(--c-green)' }}>
-                            {getMultilingualLabel()}
-                        </span>
-                    </div>
-
-                    <div className="slider-wrapper">
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            step="25"
-                            value={multilingualLevel}
-                            onChange={(e) => setMultilingualLevel(parseInt(e.target.value))}
-                            className="custom-slider"
-                        />
-                        <div className="slider-labels">
-                            <span>Light</span>
-                            <span>Medium</span>
-                            <span>High</span>
-                            <span>Heavy</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="section-block">
-                    <label className="section-label">
-                        Your text in caption <span style={{ opacity: 0.5, marginLeft: '5px' }}>(optional)</span>
-                    </label>
-                    <textarea
-                        value={captionText}
-                        onChange={(e) => setCaptionText(e.target.value)}
-                        placeholder="ใส่ข้อความที่อยากให้มีในแคปชั่น เช่น กาแฟดี, relax, weekend..."
-                        rows="3"
-                        className="neo-input"
-                    />
-                </div>
-
-                <button
-                    onClick={handleSubmit}
-                    disabled={loading || !image}
-                    className="submit-btn neo-btn"
-                >
-                    {loading ? (
-                        <>
-                            <Loader2 className="animate-spin" />
-                            Processing...
-                        </>
-                    ) : (
-                        <>
-                            <Sparkles />
-                            LET'S GO!
-                        </>
-                    )}
-                </button>
-
-                <div className="footer-copyright">
-                    <p>© 2025 All Rights Reserved. | Curated by iDEAS365 x Generative AI</p>
-                </div>
-            </div>
+            {!masterContext && (
+              <button
+                className="neo-btn"
+                style={{
+                  fontSize: '12px',
+                  padding: '8px 16px',
+                  background: '#FF1493',
+                  color: 'white'
+                }}
+                onClick={handleStartOnboarding}
+              >
+                + Setup Brand
+              </button>
+            )}
+          </nav>
         </div>
-    );
+      </header>
+
+      {/* Main Content */}
+      <main className="app-main">{renderView()}</main>
+
+      {/* Footer */}
+      <footer className="app-footer">
+        <p>© 2025 Social Factory x iDEAS365 | Powered by Generative AI</p>
+        <p>
+          {systemReady && masterContext
+            ? `✅ System Ready | Brand: ${masterContext.brandNameTh}`
+            : '⚙️ Complete Onboarding to unlock all features'}
+        </p>
+      </footer>
+
+      {/* Global Styles */}
+      <style>{`
+        * {
+          --c-magenta: #FF1493;
+          --c-cyan: #00CED1;
+          --c-yellow: #FFD700;
+          --c-green: #00FF7F;
+          --shadow-hard: 0 4px 12px rgba(0, 0, 0, 0.12);
+          --shadow-hard-hover: 0 8px 24px rgba(0, 0, 0, 0.16);
+        }
+
+        .neo-btn {
+          background: white;
+          border: 2px solid #000;
+          padding: 12px 20px;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+          font-family: inherit;
+          font-size: 14px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .neo-btn:hover {
+          transform: translate(-2px, -2px);
+          box-shadow: var(--shadow-hard-hover);
+        }
+
+        .neo-btn:active {
+          transform: translate(0, 0);
+        }
+
+        .neo-box {
+          background: white;
+          border: 2px solid #000;
+          border-radius: 8px;
+          padding: 20px;
+          box-shadow: var(--shadow-hard);
+        }
+
+        .app-wrapper {
+          display: flex;
+          flex-direction: column;
+          min-height: 100vh;
+          background: #fafafa;
+        }
+
+        .app-header {
+          background: white;
+          border-bottom: 2px solid #000;
+          padding: 15px 20px;
+          position: sticky;
+          top: 0;
+          z-index: 100;
+        }
+
+        .header-content {
+          max-width: 1400px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .brand-logo {
+          display: flex;
+          align-items: center;
+        }
+
+        .header-nav {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .context-badge {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          background: #f0f0f0;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .badge-label {
+          opacity: 0.6;
+        }
+
+        .badge-value {
+          color: #FF1493;
+        }
+
+        .app-main {
+          flex: 1;
+          overflow-y: auto;
+        }
+
+        .app-footer {
+          background: white;
+          border-top: 2px solid #000;
+          padding: 20px;
+          text-align: center;
+          font-size: 12px;
+          color: #666;
+        }
+
+        .app-footer p {
+          margin: 5px 0;
+        }
+
+        @media (max-width: 768px) {
+          .header-content {
+            flex-direction: column;
+            gap: 10px;
+          }
+
+          .header-nav {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+      `}</style>
+    </div>
+  );
 };
 
-export default CaptionFactoryUpload;
+export default App;
