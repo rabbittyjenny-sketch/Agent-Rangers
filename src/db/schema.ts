@@ -165,3 +165,98 @@ export const campaignSchedules = pgTable('campaign_schedules', {
 });
 
 export type CampaignSchedule = InferSelectModel<typeof campaignSchedules>;
+
+// ============================================================================
+// CONTENT FACTORY TABLES - Knowledge & Sales Content Generation System
+// ============================================================================
+
+// Content Factory Submissions - Store content creation requests
+export const contentFactorySubmissions = pgTable('content_factory_submissions', {
+  id: serial('id').primaryKey(),
+  brandId: integer('brand_id').notNull().references(() => brands.id, { onDelete: 'cascade' }),
+  mainCategory: varchar('main_category', { length: 255 }).notNull(), // e.g., "The Lean Billionaire Factory"
+  userEmail: varchar('user_email', { length: 255 }).notNull(),
+  category: varchar('category', { length: 50 }).notNull(), // 'knowledge' or 'sales'
+  postFormat: varchar('post_format', { length: 100 }), // Short Clip Video, Photo, Info Graphic, etc.
+  itemId: varchar('item_id', { length: 255 }), // Card name for knowledge content
+  platform: varchar('platform', { length: 50 }).notNull(), // TikTok, Facebook, Instagram, YouTube, etc.
+  rawText: text('raw_text'), // Content details or product description
+  fileAsset: text('file_asset'), // Image file path/URL (uploaded)
+  mimeType: varchar('mime_type', { length: 100 }), // image/jpeg, image/png, etc.
+  status: varchar('status', { length: 50 }).default('draft'), // draft, submitted, processing, completed, failed
+  makeWebhookUrl: text('make_webhook_url'), // Make.com webhook for processing
+  makeWebhookResponse: jsonb('make_webhook_response'), // Response from Make.com
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type ContentFactorySubmission = InferSelectModel<typeof contentFactorySubmissions>;
+
+// ============================================================================
+// CAPTION FACTORY TABLES - AI Caption Generation from Images
+// ============================================================================
+
+// Caption Factory Submissions - Store caption generation requests
+export const captionFactorySubmissions = pgTable('caption_factory_submissions', {
+  id: serial('id').primaryKey(),
+  lineUserId: varchar('line_user_id', { length: 255 }).notNull(), // LINE User ID from LIFF
+  displayName: varchar('display_name', { length: 255 }), // LINE profile name
+  lineProfileImage: text('line_profile_image'), // LINE profile image URL
+  imageData: text('image_data'), // Image in Base64 format
+  mimeType: varchar('mime_type', { length: 100 }), // image/jpeg, image/png, etc.
+  mood: varchar('mood', { length: 50 }), // VIBRANT, CALM, FUN, LUXURY, AESTHETIC, etc.
+  userWords: text('user_words'), // Optional additional context from user
+  multilingualLevel: integer('multilingual_level'), // 0-100 percentage (language mix)
+  status: varchar('status', { length: 50 }).default('draft'), // draft, submitted, processing, completed, failed
+  generatedCaption: text('generated_caption'), // AI-generated caption
+  generatedCaptionTh: text('generated_caption_th'), // Thai version if multilingual
+  hashtags: jsonb('hashtags'), // Generated hashtags
+  moodAnalysis: jsonb('mood_analysis'), // AI analysis of mood and tone
+  makeWebhookUrl: text('make_webhook_url'), // Make.com webhook for processing
+  makeWebhookResponse: jsonb('make_webhook_response'), // Response from Make.com
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type CaptionFactorySubmission = InferSelectModel<typeof captionFactorySubmissions>;
+
+// Make.com Integration Logs - Track all webhook interactions
+export const makecomIntegrationLogs = pgTable('makecom_integration_logs', {
+  id: serial('id').primaryKey(),
+  brandId: integer('brand_id').references(() => brands.id, { onDelete: 'set null' }),
+  submissionType: varchar('submission_type', { length: 50 }).notNull(), // 'content_factory' or 'caption_factory'
+  submissionId: integer('submission_id'), // Foreign key to either table
+  webhookUrl: text('webhook_url').notNull(),
+  requestPayload: jsonb('request_payload'), // What we sent to Make.com
+  responsePayload: jsonb('response_payload'), // What Make.com returned
+  responseStatus: integer('response_status'), // HTTP status code (200, 400, 500, etc.)
+  errorMessage: text('error_message'), // If failed, the error details
+  processingTimeMs: integer('processing_time_ms'), // How long Make.com took
+  retryCount: integer('retry_count').default(0),
+  status: varchar('status', { length: 50 }).notNull(), // 'success' or 'failed'
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type MakecomIntegrationLog = InferSelectModel<typeof makecomIntegrationLogs>;
+
+// Automation Schedules - For Automation Specialist agent
+export const automationSchedules = pgTable('automation_schedules', {
+  id: serial('id').primaryKey(),
+  brandId: integer('brand_id').notNull().references(() => brands.id, { onDelete: 'cascade' }),
+  automationName: varchar('automation_name', { length: 255 }).notNull(),
+  automationType: varchar('automation_type', { length: 100 }), // 'content_factory', 'caption_factory', 'post_scheduling'
+  isActive: boolean('is_active').default(true),
+  schedule: varchar('schedule', { length: 100 }), // 'daily', 'weekly', 'custom cron'
+  cronExpression: varchar('cron_expression', { length: 255 }), // e.g., "0 9 * * 1-5" (9am weekdays)
+  linkedContentFactories: jsonb('linked_content_factories'), // Array of content_factory_ids
+  linkedCaptionFactories: jsonb('linked_caption_factories'), // Array of caption_factory_ids
+  automationConfig: jsonb('automation_config'), // Settings specific to this automation
+  lastRunAt: timestamp('last_run_at'),
+  nextRunAt: timestamp('next_run_at'),
+  executionLogs: jsonb('execution_logs'), // Array of execution records
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type AutomationSchedule = InferSelectModel<typeof automationSchedules>;
