@@ -97,6 +97,7 @@ const App = () => {
             clusterId={selectedCluster}
             onBack={handleBack}
             onSelectAgent={handleSelectAgent}
+            masterContext={masterContext}
           />
         );
 

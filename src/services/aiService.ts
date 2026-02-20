@@ -314,7 +314,7 @@ Caption Styles สำหรับ ${context.brandNameTh}:
 
 1️⃣ Emotional Hook
    "สไตล์ดึงอารมณ์ - ทำให้คนรู้สึก"
-   ตัวอย่าง: "${context.moodKeywords[0].toUpperCase()} is not just a word, it's a feeling..."
+   ตัวอย่าง: "${context.visualStyle.moodKeywords[0].toUpperCase()} is not just a word, it's a feeling..."
 
 2️⃣ Educational/Value
    "สอนและให้คุณค่า"
