@@ -4,17 +4,44 @@
  */
 
 export interface MasterContext {
+  // === BASIC IDENTIFICATION ===
   brandId: string;
   brandNameTh: string;
   brandNameEn: string;
   industry: string;
-  coreUSP: string;
+
+  // === STRATEGIST_DATA (Bucket 1) ===
+  coreUSP: string[]; // CHANGED: Array of 2-3 USPs instead of single string
+  businessModel?: string; // B2B, B2C, Subscription, Hybrid
+  competitors?: string[]; // Array of competitor names for analysis
+  legalInfo?: {
+    taxId: string;
+    companyAddress: string;
+  };
+
+  // === STUDIO_DATA (Bucket 2) ===
   visualStyle: {
     primaryColor: string;
+    secondaryColors?: string[]; // Array of hex colors
+    fontFamily?: string[]; // [primary, secondary]
     moodKeywords: string[]; // e.g., ["vibrant", "modern", "luxury"]
+    videoStyle?: string; // Cinematic, fast-cut, slow-paced
+    forbiddenElements?: string[]; // Visual elements to avoid
   };
-  targetAudience: string;
+
+  // === AGENCY_DATA (Bucket 3) ===
+  targetAudience: string; // General description
+  targetPersona?: string; // Detailed persona (age/job/lifestyle)
+  painPoints?: string[]; // Array of customer pain points
   toneOfVoice: 'formal' | 'casual' | 'playful' | 'professional' | 'luxury';
+  forbiddenWords?: string[]; // Words/phrases to avoid
+  brandHashtags?: string[]; // Signature hashtags
+  automationNeeds?: {
+    lineOa?: string;
+    email?: string;
+  };
+
+  // === METADATA ===
   createdAt: string;
   lastUpdated: string;
 }
@@ -264,13 +291,39 @@ export const sampleMasterContexts: MasterContext[] = [
     brandNameTh: 'คาเฟ่อาร์ต',
     brandNameEn: 'Art Coffee Studio',
     industry: 'Cafe & Coffee Shop',
-    coreUSP: 'Premium specialty coffee with artist workspace - ที่ทำกาแฟสูตรพิเศษและสถานที่สำหรับศิลปิน',
+    businessModel: 'B2C',
+    coreUSP: [
+      'Premium specialty coffee with artist workspace',
+      'Community-driven creative space',
+      'Freshly roasted beans daily'
+    ],
+    competitors: ['Artemis Cafe', '3HT Coffee', 'Ristr8to'],
+    legalInfo: {
+      taxId: '1234567890123',
+      companyAddress: '123 Sukhumvit Road, Bangkok'
+    },
     visualStyle: {
       primaryColor: '#8B4513',
-      moodKeywords: ['warm', 'artistic', 'cozy', 'creative', 'sophisticated']
+      secondaryColors: ['#D2B48C', '#654321'],
+      fontFamily: ['Playfair Display', 'Lato'],
+      moodKeywords: ['warm', 'artistic', 'cozy', 'creative', 'sophisticated'],
+      videoStyle: 'Cinematic, slow-paced, warm lighting',
+      forbiddenElements: ['Plastic cups', 'Overly cartoonish styles', 'Neon colors']
     },
     targetAudience: 'Creative professionals, artists, students, coffee enthusiasts (25-45 years old)',
+    targetPersona: 'Creative professionals (25-45y), artists, design students, coffee enthusiasts',
+    painPoints: [
+      'Need quiet workspace for focused creative work',
+      'Looking for community with like-minded creatives',
+      'Want quality specialty coffee while working'
+    ],
     toneOfVoice: 'casual',
+    forbiddenWords: ['Commercial', 'Corporate jargon', 'Overly formal Thai language'],
+    brandHashtags: ['#ArtCoffeeStudio', '#CreativeSpace', '#CommunityFirst'],
+    automationNeeds: {
+      lineOa: '@artcoffeestudio',
+      email: 'marketing@artcoffee.com'
+    },
     createdAt: new Date().toISOString(),
     lastUpdated: new Date().toISOString()
   },
@@ -279,13 +332,34 @@ export const sampleMasterContexts: MasterContext[] = [
     brandNameTh: 'บูติกแฟชั่นสยาม',
     brandNameEn: 'Siam Fashion Boutique',
     industry: 'Fashion & Apparel',
-    coreUSP: 'Sustainable Thai fashion with local artisans - แฟชั่นไทยแบบยั่งยืนสนับสนุนศิลปิชีวนีในท้องถิ่น',
+    businessModel: 'B2C',
+    coreUSP: [
+      'Sustainable Thai fashion with local artisans',
+      'Fair-trade and eco-friendly materials',
+      'Support for local communities'
+    ],
+    competitors: ['Haus of Abbi', 'Thai Artisan Hub'],
     visualStyle: {
       primaryColor: '#2C5F2D',
-      moodKeywords: ['elegant', 'sustainable', 'Thai pride', 'modern', 'minimalist']
+      secondaryColors: ['#8FB381', '#C4D4A8'],
+      fontFamily: ['Montserrat', 'Lora'],
+      moodKeywords: ['elegant', 'sustainable', 'Thai pride', 'modern', 'minimalist'],
+      videoStyle: 'Documentary-style, natural lighting, handcraft focus'
     },
     targetAudience: 'Conscious fashion consumers, eco-aware millennials, Thai supporters (28-45 years)',
+    targetPersona: 'Eco-conscious millennial women (25-40y), income 40k+/month, value sustainability',
+    painPoints: [
+      'Difficulty finding sustainable fashion',
+      'Want to support local businesses',
+      'Concerned about environmental impact'
+    ],
     toneOfVoice: 'professional',
+    forbiddenWords: ['Fast fashion', 'Cheap', 'Mass-produced'],
+    brandHashtags: ['#SustainableFashion', '#ThaiPride', '#EcoFashion'],
+    automationNeeds: {
+      lineOa: '@siamfashion',
+      email: 'hello@siamfashionboutique.com'
+    },
     createdAt: new Date().toISOString(),
     lastUpdated: new Date().toISOString()
   },
@@ -294,13 +368,34 @@ export const sampleMasterContexts: MasterContext[] = [
     brandNameTh: 'เดลิเวอรี่อาหารหวาน',
     brandNameEn: 'Sweet Delivery',
     industry: 'Food Delivery Service',
-    coreUSP: 'Same-day premium dessert delivery with freshness guarantee - ส่งขนมหวานสดใหม่วันเดียวกัน',
+    businessModel: 'B2C',
+    coreUSP: [
+      'Same-day premium dessert delivery with freshness guarantee',
+      'Curated artisanal dessert selection',
+      'Same-day delivery within Bangkok'
+    ],
+    competitors: ['Choco D', 'Dessert Dash'],
     visualStyle: {
       primaryColor: '#FF69B4',
-      moodKeywords: ['fun', 'sweet', 'vibrant', 'playful', 'energetic']
+      secondaryColors: ['#FFB6C1', '#FFC0CB'],
+      fontFamily: ['Quicksand', 'Varela Round'],
+      moodKeywords: ['fun', 'sweet', 'vibrant', 'playful', 'energetic'],
+      videoStyle: 'Upbeat, fast-paced, colorful, celebration focus'
     },
     targetAudience: 'Young professionals, celebration seekers, dessert lovers (18-40 years)',
+    targetPersona: 'Young women (20-35y) who celebrate occasions, middle to high income, social media active',
+    painPoints: [
+      'Hard to find fresh premium desserts quickly',
+      'Want convenient celebration delivery',
+      'Limited quality dessert options for gift-giving'
+    ],
     toneOfVoice: 'playful',
+    forbiddenWords: ['Cheap dessert', 'Low quality', 'Artificial'],
+    brandHashtags: ['#SweetDelivery', '#DessertLover', '#CelebrationMode'],
+    automationNeeds: {
+      lineOa: '@sweetdeliveryth',
+      email: 'hello@sweetdelivery.co.th'
+    },
     createdAt: new Date().toISOString(),
     lastUpdated: new Date().toISOString()
   }
