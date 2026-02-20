@@ -1,10 +1,11 @@
 /**
  * Orchestrator Engine
- * Smart Routing, Intent Recognition, Fact Checking
+ * Smart Routing, Intent Recognition, Fact Checking & Data Guard
  */
 
 import { Agent, getAllAgents, getAgentById, getAgentsByCluster } from '../data/agents';
 import { MasterContext, routingKeywords, factCheckValidators, systemCoreRules } from '../data/intelligence';
+import { dataGuardian, DataGuardReport } from './dataGuardService';
 
 export interface RoutingResult {
   agent: Agent | null;
@@ -18,6 +19,7 @@ export interface FactCheckResult {
   violations: string[];
   warnings: string[];
   recommendations: string[];
+  dataGuardReport?: DataGuardReport;
 }
 
 export class OrchestratorEngine {
@@ -123,7 +125,65 @@ export class OrchestratorEngine {
   }
 
   /**
-   * Fact Check - ตรวจสอบความถูกต้อง
+   * Comprehensive Output Validation with Data Guard
+   * เพิ่มเติมความมั่นใจของระบบ (Enhanced Reliability)
+   */
+  async validateOutputWithGuard(
+    output: string,
+    contentId?: string,
+    metadata?: any
+  ): Promise<FactCheckResult> {
+    const result: FactCheckResult = {
+      valid: true,
+      violations: [],
+      warnings: [],
+      recommendations: []
+    };
+
+    if (!this.masterContext) {
+      result.warnings.push('⚠️ ไม่พบ Master Context - ไม่สามารถตรวจสอบเต็มระดับ');
+      return result;
+    }
+
+    // Run Data Guardian validation
+    const guardReport = await dataGuardian.validateContent(
+      this.masterContext,
+      output,
+      metadata,
+      contentId
+    );
+
+    // Include guard report in result
+    result.dataGuardReport = guardReport;
+
+    // Map guard results to fact check result
+    const checksEntries = Object.entries(guardReport.checks) as any[];
+    for (const [key, checkResult] of checksEntries) {
+      if (!checkResult.passed) {
+        if (checkResult.severity === 'error') {
+          result.violations.push(checkResult.message);
+          result.valid = false;
+        } else if (checkResult.severity === 'warning') {
+          result.warnings.push(checkResult.message);
+        }
+      }
+    }
+
+    // Add all recommendations
+    result.recommendations.push(...guardReport.recommendations);
+
+    // Overall status
+    if (guardReport.overallStatus === 'blocked') {
+      result.valid = false;
+    } else if (guardReport.overallStatus === 'warning') {
+      result.valid = false; // Warnings are treated as validation issues to fix
+    }
+
+    return result;
+  }
+
+  /**
+   * Fact Check - ตรวจสอบความถูกต้อง (Legacy)
    * Validates output against Master Context and system rules
    */
   factCheck(output: string): FactCheckResult {
