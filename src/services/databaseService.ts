@@ -365,6 +365,93 @@ class DatabaseService {
   }
 
   /**
+   * Save Caption Factory submission
+   */
+  async saveCaptionFactorySubmission(submission: CaptionFactorySubmission): Promise<CaptionFactorySubmission> {
+    try {
+      if (!this.isReady) {
+        const key = `${this.localStoragePrefix}caption_factory_${submission.lineUserId}_${Date.now()}`;
+        const data = { ...submission, id: Date.now(), createdAt: new Date(), updatedAt: new Date() };
+        localStorage.setItem(key, JSON.stringify(data));
+        return data;
+      }
+
+      // TODO: Implement database insert when Neon is ready
+      return submission;
+    } catch (error) {
+      console.error('Error saving caption factory submission:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get pending Caption Factory submissions
+   */
+  async getPendingCaptionSubmissions(brandId?: number, limit: number = 10): Promise<CaptionFactorySubmission[]> {
+    try {
+      if (!this.isReady) {
+        const submissions: CaptionFactorySubmission[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.includes(`${this.localStoragePrefix}caption_factory_`)) {
+            const data = localStorage.getItem(key);
+            if (data) {
+              const submission = JSON.parse(data);
+              if (!brandId || submission.brandId === brandId) {
+                submissions.push(submission);
+              }
+            }
+          }
+        }
+        return submissions.slice(-limit);
+      }
+
+      // TODO: Implement database query with status = 'draft'
+      return [];
+    } catch (error) {
+      console.error('Error getting pending caption submissions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Update Caption Factory submission status
+   */
+  async updateCaptionSubmissionStatus(submissionId: number, status: string, generatedCaption?: any): Promise<void> {
+    try {
+      if (!this.isReady) {
+        // Update in localStorage
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.includes(`${this.localStoragePrefix}caption_factory_`)) {
+            const data = localStorage.getItem(key);
+            if (data) {
+              const submission = JSON.parse(data);
+              if (submission.id === submissionId) {
+                submission.status = status;
+                if (generatedCaption) {
+                  submission.generatedCaption = generatedCaption.text;
+                  submission.generatedCaptionTh = generatedCaption.textTh;
+                  submission.hashtags = generatedCaption.hashtags;
+                  submission.moodAnalysis = generatedCaption.analysis;
+                }
+                submission.updatedAt = new Date();
+                localStorage.setItem(key, JSON.stringify(submission));
+                return;
+              }
+            }
+          }
+        }
+      }
+
+      // TODO: Implement database update when Neon is ready
+    } catch (error) {
+      console.error('Error updating caption submission status:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get database status
    */
   getStatus() {
