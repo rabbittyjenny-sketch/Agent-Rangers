@@ -127,6 +127,38 @@ export interface CampaignRecord {
   estimatedReach?: number;
 }
 
+/**
+ * Video Production Records - For tracking video generation
+ */
+export interface VideoProductionLog {
+  id?: number;
+  contentId: string; // Item ID from Content_Log
+  userEmail: string;
+  rawText: string;
+  finalScript: string;
+  generatedBy: string;
+  platform: string;
+  videoUrl: string; // YouTube/TikTok URL
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  errorMessage?: string;
+  processingTimeMs?: number;
+  createdAt?: Date;
+  completedAt?: Date;
+}
+
+export interface ContentFactoryRecord {
+  id?: number;
+  mainCategory: string;
+  userEmail: string;
+  category: string; // 'Short Clip Video', etc.
+  postFormat: string;
+  itemId: string;
+  rawText: string;
+  platform: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  createdAt?: Date;
+}
+
 class DatabaseService {
   private isReady = false;
   private localStoragePrefix = 'socialFactory_db_';
@@ -447,6 +479,131 @@ class DatabaseService {
       // TODO: Implement database update when Neon is ready
     } catch (error) {
       console.error('Error updating caption submission status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Save video production log
+   */
+  async saveVideoProductionLog(log: VideoProductionLog): Promise<VideoProductionLog> {
+    try {
+      if (!this.isReady) {
+        const key = `${this.localStoragePrefix}video_production_${log.contentId}_${Date.now()}`;
+        const data = {
+          ...log,
+          id: Date.now(),
+          createdAt: new Date()
+        };
+        localStorage.setItem(key, JSON.stringify(data));
+        return data;
+      }
+
+      // TODO: Implement database insert when Neon is ready
+      return log;
+    } catch (error) {
+      console.error('Error saving video production log:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get video production logs by user
+   */
+  async getVideoProductionLogs(userEmail?: string, limit: number = 50): Promise<VideoProductionLog[]> {
+    try {
+      if (!this.isReady) {
+        const logs: VideoProductionLog[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.includes(`${this.localStoragePrefix}video_production_`)) {
+            const data = localStorage.getItem(key);
+            if (data) {
+              const log = JSON.parse(data);
+              if (!userEmail || log.userEmail === userEmail) {
+                logs.push(log);
+              }
+            }
+          }
+        }
+        return logs.sort((a, b) =>
+          new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        ).slice(0, limit);
+      }
+
+      // TODO: Implement database query
+      return [];
+    } catch (error) {
+      console.error('Error fetching video production logs:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get pending video production tasks
+   */
+  async getPendingVideoTasks(): Promise<VideoProductionLog[]> {
+    try {
+      if (!this.isReady) {
+        const tasks: VideoProductionLog[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.includes(`${this.localStoragePrefix}video_production_`)) {
+            const data = localStorage.getItem(key);
+            if (data) {
+              const log = JSON.parse(data);
+              if (log.status === 'pending' || log.status === 'processing') {
+                tasks.push(log);
+              }
+            }
+          }
+        }
+        return tasks;
+      }
+
+      // TODO: Implement database query
+      return [];
+    } catch (error) {
+      console.error('Error fetching pending video tasks:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Update video production log status
+   */
+  async updateVideoProductionStatus(
+    contentId: string,
+    status: 'pending' | 'processing' | 'completed' | 'failed',
+    videoUrl?: string,
+    errorMessage?: string
+  ): Promise<void> {
+    try {
+      if (!this.isReady) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.includes(`${this.localStoragePrefix}video_production_`)) {
+            const data = localStorage.getItem(key);
+            if (data) {
+              const log = JSON.parse(data);
+              if (log.contentId === contentId) {
+                log.status = status;
+                if (videoUrl) log.videoUrl = videoUrl;
+                if (errorMessage) log.errorMessage = errorMessage;
+                if (status === 'completed') {
+                  log.completedAt = new Date();
+                }
+                localStorage.setItem(key, JSON.stringify(log));
+                return;
+              }
+            }
+          }
+        }
+      }
+
+      // TODO: Implement database update
+    } catch (error) {
+      console.error('Error updating video production status:', error);
       throw error;
     }
   }

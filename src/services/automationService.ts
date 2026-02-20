@@ -1,14 +1,30 @@
 /**
  * Automation Service
- * Manages automated workflows for Content Factory and Caption Factory
- * Integrates with Make.com via webhooks
+ * Manages automated workflows for Content Factory, Caption Factory, and Video Generator
+ * Integrates with Make.com via webhooks and Claude API for AI generation
  */
 
-import { databaseService, ContentFactorySubmission, CaptionFactorySubmission, MakecomIntegrationLog } from './databaseService';
+import { databaseService } from './databaseService';
+import { videoGeneratorService } from './videoGeneratorService';
+
+// Type for logging Make.com integration (when schema exports are available)
+interface MakecomIntegrationLog {
+  submissionType: 'content_factory' | 'caption_factory';
+  submissionId?: number;
+  webhookUrl: string;
+  requestPayload: Record<string, any>;
+  responsePayload: Record<string, any>;
+  responseStatus: number;
+  processingTimeMs: number;
+  retryCount: number;
+  status: 'success' | 'failed';
+  createdAt: Date;
+}
 
 export interface AutomationConfig {
   contentFactoryEnabled: boolean;
   captionFactoryEnabled: boolean;
+  videoGeneratorEnabled: boolean;
   postingScheduleEnabled: boolean;
   autoRetryFailures: boolean;
   maxRetries: number;
@@ -38,6 +54,7 @@ class AutomationService {
   private config: AutomationConfig = {
     contentFactoryEnabled: true,
     captionFactoryEnabled: true,
+    videoGeneratorEnabled: true,
     postingScheduleEnabled: true,
     autoRetryFailures: true,
     maxRetries: 3,
@@ -204,6 +221,66 @@ class AutomationService {
     // Schedule initial execution
     this.scheduleNext(scheduleId, cronExpression, executeCaptionFactory);
     console.log(`✅ Caption Factory automation scheduled: ${cronExpression}`);
+  }
+
+  /**
+   * Setup automated Video Generator processing
+   * Processes pending content entries from Google Sheets
+   */
+  async setupVideoGeneratorAutomation(cronExpression: string, platform?: string): Promise<void> {
+    const scheduleId = `video-generator-${platform || 'all'}`;
+
+    // Clear existing schedule if any
+    if (this.activeSchedules.has(scheduleId)) {
+      clearTimeout(this.activeSchedules.get(scheduleId)!);
+      this.activeSchedules.delete(scheduleId);
+    }
+
+    const executeVideoGenerator = async () => {
+      const startTime = Date.now();
+      const log: ExecutionLog = {
+        timestamp: new Date().toISOString(),
+        status: 'success',
+        itemsProcessed: 0,
+        itemsFailed: 0,
+        executionTimeMs: 0
+      };
+
+      try {
+        if (!this.config.videoGeneratorEnabled) {
+          log.status = 'skipped';
+          this.logExecution(scheduleId, log);
+          return;
+        }
+
+        console.log(`🎬 Video Generator Automation triggered${platform ? ` for platform: ${platform}` : ''}`);
+
+        // Process pending content entries
+        const results = await videoGeneratorService.processPendingContent(platform);
+        log.itemsProcessed = results.length;
+
+        // Count failures
+        log.itemsFailed = results.filter(r => r.status === 'failed').length;
+
+        console.log(`✅ Generated ${log.itemsProcessed} videos (${log.itemsFailed} failed)`);
+        log.status = log.itemsFailed === 0 ? 'success' : 'success'; // Partial success is still success
+
+      } catch (error) {
+        console.error('Video Generator automation error:', error);
+        log.status = 'failed';
+        log.errorDetails = error instanceof Error ? error.message : String(error);
+      } finally {
+        log.executionTimeMs = Date.now() - startTime;
+        this.logExecution(scheduleId, log);
+      }
+
+      // Schedule next execution
+      this.scheduleNext(scheduleId, cronExpression, executeVideoGenerator);
+    };
+
+    // Schedule initial execution
+    this.scheduleNext(scheduleId, cronExpression, executeVideoGenerator);
+    console.log(`✅ Video Generator automation scheduled: ${cronExpression}`);
   }
 
   /**
