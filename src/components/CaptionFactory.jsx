@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Sparkles, Loader2, Zap, Image as ImageIcon } from 'lucide-react';
+import { captionFactoryService } from '../services/captionFactoryService';
+import { databaseService } from '../services/databaseService';
 
 const CaptionFactoryUpload = () => {
   const [image, setImage] = useState(null);
@@ -59,6 +61,7 @@ const CaptionFactoryUpload = () => {
       let userId = 'web-user';
       let displayName = 'Web User';
 
+      // Try to get LINE LIFF user info if available
       if (window.liff && window.liff.isLoggedIn()) {
         try {
           const profile = await window.liff.getProfile();
@@ -69,34 +72,41 @@ const CaptionFactoryUpload = () => {
         }
       }
 
-      const webhookData = {
-        userId: userId,
-        displayName: displayName,
-        image: imageBase64,
-        check_in: '',
-        mood: mood,
-        user_words: captionText,
-        multilingual_level: multilingualLevel,
-        mime_type: image.type,
-        timestamp: new Date().toISOString()
-      };
+      // ✅ NEW: Save submission to database (replaces webhook)
+      console.log('💾 Saving caption submission to database...');
+      const submission = await captionFactoryService.saveSubmission(
+        userId,
+        displayName,
+        `data:${image.type};base64,${imageBase64}`,
+        mood,
+        multilingualLevel,
+        captionText
+      );
 
-      const WEBHOOK_URL = 'https://hook.us2.make.com/e7yel6e6t3ouyf8sv3dbni25nap685tf';
+      console.log('✅ Submission saved:', submission.id);
 
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(webhookData)
-      });
+      // ✅ NEW: Generate captions locally (replaces Make.com)
+      console.log('🎨 Generating captions...');
+      const captions = await captionFactoryService.generateCaptions(
+        imageBase64,
+        mood,
+        multilingualLevel,
+        captionText
+      );
 
-      if (!response.ok) {
-        throw new Error('Failed to process');
-      }
+      // ✅ NEW: Update submission with generated captions
+      await captionFactoryService.processSubmission(submission.id, captions);
 
-      alert('✨ ขอบคุณค่ะ! กำลังประมวลผล...\n\nเราจะส่งแคปชั่นให้คุณในแชทภายใน 10-15 วินาที 💖');
+      console.log('✅ Captions generated and saved:', captions);
 
+      // Show success message
+      alert('✨ สร้างแคปชั่นสำเร็จแล้ว!\n\nแคปชั่นของคุณพร้อมแล้ว คัดลอกและไปโพสต์ได้เลย 💖');
+
+      // Store captions in sessionStorage for results page
+      sessionStorage.setItem('captionResults', JSON.stringify(captions));
+      sessionStorage.setItem('captionPreview', imagePreview);
+
+      // Close LIFF window if in LINE
       if (window.liff && window.liff.isInClient()) {
         window.liff.closeWindow();
       }

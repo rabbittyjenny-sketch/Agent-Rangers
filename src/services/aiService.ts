@@ -1,11 +1,14 @@
 /**
  * AI Service
  * Handles agent communication and response generation
+ * Integrated with Database Service for data persistence
  */
 
 import { Agent } from '../data/agents';
 import { MasterContext } from '../data/intelligence';
 import { orchestratorEngine, RoutingResult, FactCheckResult } from './orchestratorEngine';
+import { databaseService, MessageRecord, AgentLearningRecord } from './databaseService';
+import { automationService } from './automationService';
 
 export interface AIResponse {
   agentId: string;
@@ -50,6 +53,15 @@ class AIService {
       throw new Error('Master Context not initialized. Please complete onboarding first.');
     }
 
+    // Save user message to database
+    const userMessage: MessageRecord = {
+      brandId: 1, // Will be set to actual brand ID from context when available
+      role: 'user',
+      content: request.userInput,
+      createdAt: new Date()
+    };
+    await databaseService.saveMessage(userMessage);
+
     // Determine which agent to use
     let routingResult: RoutingResult;
 
@@ -87,6 +99,39 @@ class AIService {
       timestamp: new Date().toISOString()
     };
 
+    // Save agent message to database
+    const agentMessage: MessageRecord = {
+      brandId: 1,
+      role: 'agent',
+      agentId: routingResult.agent.id,
+      agentName: routingResult.agent.name,
+      content: aiResponse.content,
+      confidence: routingResult.confidence,
+      validationResults: {
+        valid: factCheckResult.valid,
+        violations: factCheckResult.violations,
+        warnings: factCheckResult.warnings,
+        recommendations: factCheckResult.recommendations
+      },
+      createdAt: new Date()
+    };
+    await databaseService.saveMessage(agentMessage);
+
+    // Save agent learning/insights if applicable
+    if (routingResult.agent.id === 'market-analyst' && request.userInput.toLowerCase().includes('swot')) {
+      const learning: AgentLearningRecord = {
+        brandId: 1,
+        agentId: routingResult.agent.id,
+        agentName: routingResult.agent.name,
+        insight: 'Market analysis completed - SWOT analysis performed',
+        insightType: 'Analysis',
+        dataUsed: ['coreUSP', 'targetAudience', 'toneOfVoice', 'industry'],
+        confidence: routingResult.confidence,
+        actionable: true
+      };
+      await databaseService.saveAgentLearning(learning);
+    }
+
     // Add to history
     this.conversationHistory.push(aiResponse);
 
@@ -114,7 +159,8 @@ class AIService {
       'video-generator-art': this.generateVideoArtResponse(userInput, context),
       'caption-creator': this.generateCaptionResponse(userInput, context),
       'campaign-planner': this.generateCampaignResponse(userInput, context),
-      'video-generator-script': this.generateVideoScriptResponse(userInput, context)
+      'video-generator-script': this.generateVideoScriptResponse(userInput, context),
+      'automation-specialist': this.generateAutomationResponse(userInput, context)
     };
 
     return agentResponses[agent.id] || 'Agent response not available';
@@ -314,7 +360,7 @@ Caption Styles สำหรับ ${context.brandNameTh}:
 
 1️⃣ Emotional Hook
    "สไตล์ดึงอารมณ์ - ทำให้คนรู้สึก"
-   ตัวอย่าง: "${context.moodKeywords[0].toUpperCase()} is not just a word, it's a feeling..."
+   ตัวอย่าง: "${context.visualStyle.moodKeywords[0].toUpperCase()} is not just a word, it's a feeling..."
 
 2️⃣ Educational/Value
    "สอนและให้คุณค่า"
@@ -378,6 +424,116 @@ Content Mix (Diversify):
 📍 Community Engagement: 10%
 
 📌 Success Metric: Target 10-20% Conversion Rate`;
+  }
+
+  /**
+   * Automation Specialist Response Template
+   */
+  private generateAutomationResponse(input: string, context: MasterContext): string {
+    const isScheduling = input.toLowerCase().includes('schedule') || input.toLowerCase().includes('automat');
+    const isMakeCom = input.toLowerCase().includes('make.com') || input.toLowerCase().includes('webhook');
+
+    if (isScheduling) {
+      return `⚙️ Automation Setup สำหรับ ${context.brandNameTh}
+
+🎯 Automation Features Available:
+1️⃣ Content Factory Automation
+   • Auto-process submitted content
+   • Send to Make.com webhook
+   • Schedule: Every day at 9 AM
+   • Webhook: https://hook.us2.make.com/3kcyu1ygkc8fjv19193apv8oxfhd1c6h
+
+2️⃣ Caption Factory Automation
+   • Auto-generate captions from images
+   • Send to Make.com webhook
+   • Schedule: Every 6 hours
+   • Webhook: https://hook.us2.make.com/e7yel6e6t3ouyf8sv3dbni25nap685tf
+
+3️⃣ Posting Schedule
+   • Auto-post to Social Media
+   • Based on Campaign Calendar
+   • Timezone-aware scheduling
+   • Support: TikTok, Facebook, Instagram, YouTube
+
+⏰ Cron Expression Examples:
+   • "0 9 * * *" - Every day at 9:00 AM
+   • "0 */6 * * *" - Every 6 hours
+   • "0 9 * * 1-5" - Weekdays at 9:00 AM
+   • "0 17 * * *" - Every day at 5:00 PM
+
+📌 Setup Instructions:
+1. Tell me the cron schedule you want
+2. Choose: Content Factory, Caption Factory, or Posting Schedule
+3. I'll configure and activate the automation
+4. You can monitor execution logs in dashboard
+
+⚡ Current Status: ${automationService.getStatus().activeSchedules} active schedules`;
+    }
+
+    if (isMakeCom) {
+      return `🔌 Make.com Integration Guide สำหรับ ${context.brandNameTh}
+
+✅ Your Make.com Webhooks:
+
+🎬 Content Factory Workflow:
+   URL: https://hook.us2.make.com/3kcyu1ygkc8fjv19193apv8oxfhd1c6h
+   Purpose: Auto-process content submissions (knowledge, sales)
+   Expected Payload:
+   {
+     "user_email": "user@example.com",
+     "category": "knowledge", // or 'sales'
+     "platform": "TikTok",
+     "post_format": "Short Clip Video",
+     "raw_text": "Content description",
+     "file_asset": "/path/to/image.jpg"
+   }
+
+📝 Caption Factory Workflow:
+   URL: https://hook.us2.make.com/e7yel6e6t3ouyf8sv3dbni25nap685tf
+   Purpose: Auto-generate captions from images
+   Expected Payload:
+   {
+     "line_user_id": "U1234567890abc",
+     "image_data": "data:image/jpeg;base64,...",
+     "mood": "VIBRANT",
+     "multilingual_level": 50
+   }
+
+🛠️ Automation Features:
+✓ Automatic retry on failure (up to 3 attempts)
+✓ Exponential backoff: 5s, 10s, 20s
+✓ Request timeout: 10 seconds
+✓ Batch processing: Up to 100 items per cycle
+✓ Full logging and monitoring
+
+📊 Execution Monitoring:
+   • View past executions
+   • Check error logs
+   • Estimate next run time
+   • Pause/resume automations
+
+💡 Tips for Best Results:
+1. Keep Make.com webhook URLs active
+2. Test webhooks before scheduling
+3. Monitor execution logs weekly
+4. Adjust batch size if timeouts occur`;
+    }
+
+    return `⚙️ Automation Specialist Services สำหรับ ${context.brandNameTh}
+
+I can help you:
+✅ Set up automated content creation
+✅ Schedule posts to social media
+✅ Integrate with Make.com workflows
+✅ Monitor automation execution logs
+✅ Handle failures with auto-retry
+
+What would you like to automate?
+• "schedule content factory" - Auto-process content submissions
+• "schedule caption factory" - Auto-generate captions
+• "make.com setup" - Configure webhook integration
+• "automation status" - Check current automations
+• "stop automations" - Disable all automations`;
   }
 
   /**

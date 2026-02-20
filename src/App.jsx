@@ -12,6 +12,7 @@ import CaptionFactoryUpload from './components/CaptionFactory';
 // Import services
 import { orchestratorEngine } from './services/orchestratorEngine';
 import { aiService } from './services/aiService';
+import { databaseService } from './services/databaseService';
 
 const App = () => {
   const [currentView, setCurrentView] = useState('hero'); // hero, agents, onboarding, caption-factory
@@ -21,6 +22,9 @@ const App = () => {
 
   // Load Master Context from localStorage on mount
   useEffect(() => {
+    // Initialize database service and log status
+    console.log('🗄️  Database Service Status:', databaseService.getStatus());
+
     const savedContext = localStorage.getItem('socialFactory_masterContext');
     if (savedContext) {
       try {
@@ -97,6 +101,7 @@ const App = () => {
             clusterId={selectedCluster}
             onBack={handleBack}
             onSelectAgent={handleSelectAgent}
+            masterContext={masterContext}
           />
         );
 

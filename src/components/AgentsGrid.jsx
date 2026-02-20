@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { getAgentsByCluster, clusterMetadata } from '../data/agents';
-import { ChevronLeft, MessageSquare, Zap } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { getAgentsByCluster, clusterMetadata, getAgentById } from '../data/agents';
+import { ChevronLeft, MessageSquare, Zap, Send, Paperclip, Mic, MicOff, Loader2, Image as ImageIcon, X } from 'lucide-react';
+import { aiService } from '../services/aiService';
 
-const AgentsGrid = ({ clusterId, onBack, onSelectAgent }) => {
+const AgentsGrid = ({ clusterId, onBack, onSelectAgent, masterContext }) => {
   const [selectedAgent, setSelectedAgent] = useState(null);
   const agents = getAgentsByCluster(clusterId);
   const cluster = clusterMetadata[clusterId];
@@ -124,9 +125,10 @@ const AgentsGrid = ({ clusterId, onBack, onSelectAgent }) => {
       </div>
 
       {/* Chat Interface (if agent selected) */}
-      {selectedAgent && (
+      {selectedAgent && masterContext && (
         <ChatInterface
           agentId={selectedAgent}
+          masterContext={masterContext}
           onClose={() => setSelectedAgent(null)}
         />
       )}
@@ -280,98 +282,366 @@ const AgentsGrid = ({ clusterId, onBack, onSelectAgent }) => {
 };
 
 /**
- * Chat Interface Component (Sub-component)
+ * Full-Featured Chat Interface Component with:
+ * - Real AI agent responses via aiService
+ * - File/Image attachment support
+ * - Speech-to-text (voice input)
+ * - Markdown-style formatting
  */
-const ChatInterface = ({ agentId, onClose }) => {
+const ChatInterface = ({ agentId, masterContext, onClose }) => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState([]);
+  const [error, setError] = useState('');
+  const fileInputRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const recognitionRef = useRef(null);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'th-TH'; // Thai language
+
+      recognitionRef.current.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        setInputValue((prev) => prev + transcript);
+      };
+
+      recognitionRef.current.onerror = (event) => {
+        setError(`Speech recognition error: ${event.error}`);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+  }, []);
+
+  // Auto-scroll to newest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const agent = getAgentById(agentId);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
 
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() && attachedFiles.length === 0) return;
 
-    // Add user message
+    // Create user message with attachments
     const userMessage = {
       id: Date.now(),
       role: 'user',
-      content: inputValue,
+      content: inputValue || '(See attached file)',
+      attachments: attachedFiles,
       timestamp: new Date()
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
+    setAttachedFiles([]);
     setIsLoading(true);
+    setError('');
 
-    // Simulate agent response
-    setTimeout(() => {
+    try {
+      // Call the real AI Service to get agent response
+      const aiResponse = await aiService.processMessage({
+        userInput: inputValue,
+        context: masterContext,
+        forceAgent: agentId
+      });
+
+      // Add agent's response
       const agentMessage = {
         id: Date.now() + 1,
         role: 'agent',
-        content: `Response from Agent ${agentId} about: "${inputValue}"`,
+        content: aiResponse.content,
+        agentName: aiResponse.agentName,
+        confidence: aiResponse.confidence,
         timestamp: new Date()
       };
 
       setMessages((prev) => [...prev, agentMessage]);
       setIsLoading(false);
-    }, 800);
+    } catch (err) {
+      setError(`Error: ${err.message}`);
+      setIsLoading(false);
+
+      // Fallback response
+      const fallbackMessage = {
+        id: Date.now() + 1,
+        role: 'agent',
+        content: `⚠️ System Error\n\nUnable to process request: ${err.message}\n\nPlease ensure you have completed Onboarding with your brand information.`,
+        timestamp: new Date()
+      };
+      setMessages((prev) => [...prev, fallbackMessage]);
+    }
+  };
+
+  const handleFileAttachment = (e) => {
+    const files = Array.from(e.target.files);
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setAttachedFiles((prev) => [
+          ...prev,
+          {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            data: event.target.result
+          }
+        ]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const toggleSpeech = () => {
+    if (!recognitionRef.current) {
+      setError('Speech recognition not supported in your browser');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
+  const removeAttachment = (index) => {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
     <div className="chat-interface">
+      {/* Chat Header */}
       <div className="chat-header">
-        <h3>Chat with Agent</h3>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>
+            {agent?.emoji} {agent?.name}
+          </h3>
+          <p style={{ margin: '3px 0 0 0', fontSize: '11px', opacity: 0.6 }}>
+            {agent?.descriptionTh}
+          </p>
+        </div>
         <button className="close-btn" onClick={onClose}>×</button>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div style={{
+          padding: '10px 12px',
+          background: '#fee',
+          borderBottom: '1px solid #fcc',
+          fontSize: '12px',
+          color: '#c33'
+        }}>
+          {error}
+        </div>
+      )}
+
+      {/* Chat Messages */}
       <div className="chat-messages">
         {messages.length === 0 && (
           <div className="empty-chat">
-            <p>Start a conversation with the agent...</p>
+            <p style={{ fontSize: '12px', color: '#999' }}>
+              💬 Start a conversation with {agent?.name}
+            </p>
+            <p style={{ fontSize: '11px', color: '#ccc', margin: '8px 0 0 0' }}>
+              • Type your question
+              • Attach files/images
+              • Use voice input
+            </p>
           </div>
         )}
 
         {messages.map((msg) => (
           <div key={msg.id} className={`message ${msg.role}`}>
-            <p>{msg.content}</p>
+            {msg.role === 'agent' && msg.agentName && (
+              <div style={{ fontSize: '11px', fontWeight: 600, opacity: 0.7, marginBottom: '4px' }}>
+                {msg.agentName}
+                {msg.confidence && ` (${Math.round(msg.confidence)}% confidence)`}
+              </div>
+            )}
+            <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
+              {msg.content}
+            </p>
+            {msg.attachments && msg.attachments.length > 0 && (
+              <div style={{ marginTop: '8px', fontSize: '11px' }}>
+                📎 {msg.attachments.map((a) => a.name).join(', ')}
+              </div>
+            )}
           </div>
         ))}
 
         {isLoading && (
           <div className="message agent">
-            <p><Zap size={14} /> Thinking...</p>
+            <p style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+              Thinking...
+            </p>
           </div>
         )}
+
+        <div ref={messagesEndRef} />
       </div>
 
+      {/* Attached Files Preview */}
+      {attachedFiles.length > 0 && (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '8px',
+          padding: '10px',
+          background: '#f9f9f9',
+          borderBottom: '1px solid #eee'
+        }}>
+          {attachedFiles.map((file, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 10px',
+                background: 'white',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '11px'
+              }}
+            >
+              {file.type.startsWith('image/') ? (
+                <ImageIcon size={12} />
+              ) : (
+                <Paperclip size={12} />
+              )}
+              <span>{file.name}</span>
+              <button
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '0',
+                  marginLeft: '4px',
+                  color: '#999'
+                }}
+                onClick={() => removeAttachment(idx)}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Chat Input Form */}
       <form onSubmit={handleSendMessage} className="chat-input-form">
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={() => fileInputRef.current?.click()}
+          title="Attach file or image"
+        >
+          <Paperclip size={16} />
+        </button>
+
+        <button
+          type="button"
+          className={`icon-btn ${isListening ? 'listening' : ''}`}
+          onClick={toggleSpeech}
+          title={isListening ? 'Stop recording' : 'Start voice input'}
+        >
+          {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+        </button>
+
         <input
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Ask the agent..."
+          placeholder="Ask your question or use voice..."
           disabled={isLoading}
+          style={{
+            flex: 1,
+            padding: '8px 12px',
+            border: '1px solid #ddd',
+            borderRadius: '6px',
+            fontSize: '12px',
+            outline: 'none',
+            fontFamily: 'inherit'
+          }}
+          onFocus={(e) => e.target.style.borderColor = '#FF1493'}
+          onBlur={(e) => e.target.style.borderColor = '#ddd'}
         />
-        <button type="submit" disabled={isLoading || !inputValue.trim()}>
-          <MessageSquare size={18} />
+
+        <button
+          type="submit"
+          disabled={isLoading || (!inputValue.trim() && attachedFiles.length === 0)}
+          className="send-btn"
+        >
+          {isLoading ? (
+            <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+          ) : (
+            <Send size={16} />
+          )}
         </button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*,.pdf,.doc,.docx,.txt"
+          onChange={handleFileAttachment}
+          style={{ display: 'none' }}
+        />
       </form>
 
+      {/* Styles */}
       <style>{`
         .chat-interface {
           position: fixed;
           bottom: 20px;
           right: 20px;
-          width: 400px;
-          max-height: 600px;
+          width: 450px;
+          max-height: 700px;
           background: white;
-          border: 2px solid #ddd;
+          border: 2px solid #000;
           border-radius: 12px;
           display: flex;
           flex-direction: column;
-          box-shadow: var(--shadow-hard);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
           z-index: 1000;
+          animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+          from {
+            transform: translateY(30px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
 
         .chat-header {
@@ -379,14 +649,8 @@ const ChatInterface = ({ agentId, onClose }) => {
           justify-content: space-between;
           align-items: center;
           padding: 15px;
-          border-bottom: 1px solid #eee;
-          background: #f9f9f9;
-        }
-
-        .chat-header h3 {
-          margin: 0;
-          font-size: 14px;
-          font-weight: 600;
+          border-bottom: 2px solid #000;
+          background: white;
         }
 
         .close-btn {
@@ -396,62 +660,95 @@ const ChatInterface = ({ agentId, onClose }) => {
           cursor: pointer;
           padding: 0;
           line-height: 1;
+          color: #333;
+          transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+          color: #FF1493;
+          transform: scale(1.2);
         }
 
         .chat-messages {
           flex: 1;
           overflow-y: auto;
           padding: 15px;
+          background: #fafafa;
         }
 
         .empty-chat {
           text-align: center;
           color: #999;
-          font-size: 12px;
-          padding: 20px;
+          padding: 30px 20px;
         }
 
         .message {
-          margin-bottom: 10px;
+          margin-bottom: 12px;
           padding: 10px 12px;
           border-radius: 8px;
           font-size: 13px;
           line-height: 1.4;
+          max-width: 90%;
         }
 
         .message.user {
           background: #FF1493;
           color: white;
-          margin-left: 20px;
+          margin-left: auto;
+          margin-right: 0;
+          border-bottom-right-radius: 2px;
         }
 
         .message.agent {
-          background: #f0f0f0;
+          background: white;
           color: #333;
-          margin-right: 20px;
+          margin-left: 0;
+          margin-right: auto;
+          border: 1px solid #eee;
+          border-bottom-left-radius: 2px;
         }
 
         .chat-input-form {
           display: flex;
           gap: 8px;
           padding: 12px;
-          border-top: 1px solid #eee;
+          border-top: 2px solid #000;
+          background: white;
+          align-items: center;
         }
 
-        .chat-input-form input {
-          flex: 1;
-          padding: 8px 12px;
+        .icon-btn {
+          background: white;
           border: 1px solid #ddd;
+          padding: 8px;
           border-radius: 6px;
-          font-size: 12px;
-          outline: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #666;
+          transition: all 0.2s ease;
+          flex-shrink: 0;
         }
 
-        .chat-input-form input:focus {
+        .icon-btn:hover {
           border-color: #FF1493;
+          color: #FF1493;
         }
 
-        .chat-input-form button {
+        .icon-btn.listening {
+          background: #ffe0e6;
+          border-color: #FF1493;
+          color: #FF1493;
+          animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
+        }
+
+        .send-btn {
           background: #FF1493;
           color: white;
           border: none;
@@ -461,14 +758,16 @@ const ChatInterface = ({ agentId, onClose }) => {
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
+          flex-shrink: 0;
         }
 
-        .chat-input-form button:hover:not(:disabled) {
-          background: #FF1493CC;
+        .send-btn:hover:not(:disabled) {
+          background: #FF1493DD;
+          transform: scale(1.05);
         }
 
-        .chat-input-form button:disabled {
+        .send-btn:disabled {
           opacity: 0.5;
           cursor: not-allowed;
         }
@@ -478,6 +777,7 @@ const ChatInterface = ({ agentId, onClose }) => {
             width: calc(100vw - 40px);
             bottom: 10px;
             right: 10px;
+            max-height: 60vh;
           }
         }
       `}</style>

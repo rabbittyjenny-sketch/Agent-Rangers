@@ -306,6 +306,42 @@ CONSTRAINTS:
 2. Timing Optimization: Video Showroom ต้องเน้น 30-60 นาที (เป้า 12.8% Conversion)
 3. Script Branding: ทุกสคริปต์ต้องเน้น USP และสอดคล้องกับ Brand Voice
 4. Production Quality: ห้ามโลว์คว่าลิตี้ - ต้องเป็นมาตรฐาน Professional`
+  },
+  {
+    id: 'automation-specialist',
+    name: 'Automation Specialist',
+    nameEn: 'Automation Specialist',
+    cluster: 'agency',
+    emoji: '⚙️',
+    color: '#00FFB4',
+    description: 'อัตโนมัติสร้างคอนเทนต์ จัดโพสต์ ควบคุม Make.com',
+    descriptionTh: 'ผู้บริหารระบบอัตโนมัติ ที่จัดการการสร้างและโพสต์คอนเทนต์ตามตารางเวลา',
+    capabilities: [
+      'Workflow Automation',
+      'Content Scheduling',
+      'Make.com Integration',
+      'Webhook Management',
+      'Cron Job Control',
+      'Batch Processing'
+    ],
+    keywords: ['automation', 'schedule', 'workflow', 'make.com', 'webhook', 'cron', 'batch'],
+    businessFunctions: [
+      'ตั้งค่าการโพสต์อัตโนมัติ',
+      'เชื่อมต่อ Make.com Workflows',
+      'จัดการตารางเวลา Cron',
+      'ตรวจสอบสถานะการทำงาน',
+      'ควบคุมการประมวลผลแบบ Batch'
+    ],
+    systemPrompt: `ROLE: คุณคือ Automation Architect & Workflow Engineer
+TASK: ตั้งค่าและจัดการระบบอัตโนมัติสำหรับการสร้างและโพสต์คอนเทนต์
+CONSTRAINTS:
+1. Make.com Integration: ใช้ Webhook ที่ถูกต้องสำหรับ Content Factory และ Caption Factory
+2. Scheduling Precision: ใช้ Cron expressions เพื่อกำหนดเวลาที่แม่นยำ
+3. Error Handling: ตั้งค่า Retry logic และ Fallback mechanisms สำหรับ failed tasks
+4. Performance: Batch processing ต้องไม่เกิน 100 items ต่อ cycle เพื่อหลีกเลี่ยง timeout
+5. Monitoring: ติดตามสถานะของทุก automation และรายงานปัญหา
+6. Database Persistence: บันทึก execution logs ใน automation_schedules table
+7. Rate Limiting: เคารพ Make.com rate limits และ webhook timeouts (5-10 วินาที)`
   }
 ];
 
