@@ -75,12 +75,92 @@ export class OrchestratorEngine {
 
   /**
    * Build complete context for an agent (Part A + Part B combined)
+   * With Smart Lazy Data Distribution: Send only relevant data based on agent cluster
    */
   buildAgentContext(agentId: string): { masterContext: MasterContext | null; taskData: Record<string, any> | undefined } {
+    // Get agent details to determine which cluster
+    const agent = getAgentById(agentId);
+    const cluster = agent?.cluster;
+
+    // Smart Lazy: Filter context based on cluster
+    let contextToSend = this.masterContext;
+    if (contextToSend && cluster) {
+      contextToSend = this.getContextByCluster(contextToSend, cluster);
+    }
+
     return {
-      masterContext: this.masterContext,
+      masterContext: contextToSend,
       taskData: this.agentTaskData.get(agentId)
     };
+  }
+
+  /**
+   * Smart Lazy Data Distribution
+   * Filter MasterContext based on agent cluster - send only relevant buckets
+   * + Allow cross-data access when needed (e.g., Agency gets USP from Strategist)
+   */
+  private getContextByCluster(context: MasterContext, cluster: string): MasterContext {
+    const baseContext = {
+      // Always include identification
+      brandId: context.brandId,
+      brandNameTh: context.brandNameTh,
+      brandNameEn: context.brandNameEn,
+      industry: context.industry,
+      createdAt: context.createdAt,
+      lastUpdated: context.lastUpdated,
+
+      // Default empty values to prevent undefined
+      coreUSP: context.coreUSP || [],
+      visualStyle: context.visualStyle,
+      toneOfVoice: context.toneOfVoice || 'professional' as const,
+    };
+
+    switch (cluster) {
+      case 'strategist':
+        // The Strategist: Full strategist_data + analytics fields
+        return {
+          ...baseContext,
+          coreUSP: context.coreUSP,
+          businessModel: context.businessModel,
+          competitors: context.competitors,
+          legalInfo: context.legalInfo,
+          // Useful for analysis
+          targetAudience: context.targetAudience,
+          visualStyle: context.visualStyle,
+          toneOfVoice: context.toneOfVoice,
+        };
+
+      case 'studio':
+        // The Studio: Visual identity + studio_data
+        return {
+          ...baseContext,
+          coreUSP: context.coreUSP, // For USP visual integration
+          visualStyle: context.visualStyle, // Full visual system
+          targetAudience: context.targetAudience, // For design context
+          targetPersona: context.targetPersona, // For user-centric design
+          toneOfVoice: context.toneOfVoice, // For brand voice alignment
+        };
+
+      case 'agency':
+        // The Agency: Audience + communication + cross-data (USP for sales hook)
+        return {
+          ...baseContext,
+          coreUSP: context.coreUSP, // CROSS-DATA: For caption sales hook
+          targetAudience: context.targetAudience,
+          targetPersona: context.targetPersona,
+          painPoints: context.painPoints,
+          toneOfVoice: context.toneOfVoice,
+          forbiddenWords: context.forbiddenWords,
+          brandHashtags: context.brandHashtags,
+          automationNeeds: context.automationNeeds,
+          // Useful for content strategy
+          businessModel: context.businessModel,
+        };
+
+      default:
+        // Default: Return full context if cluster unknown
+        return context;
+    }
   }
 
   // ========================================

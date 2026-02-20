@@ -1,22 +1,41 @@
 import { pgTable, text, serial, timestamp, boolean, integer, jsonb, varchar } from 'drizzle-orm/pg-core';
 import { InferSelectModel } from 'drizzle-orm';
 
-// Brands Table - Core brand information
+// Brands Table - Core brand information + Brand Knowledge Template (3 Buckets)
 export const brands = pgTable('brands', {
   id: serial('id').primaryKey(),
+
+  // === STRATEGIST_DATA (Bucket 1) ===
   brandNameEn: varchar('brand_name_en', { length: 255 }).notNull(),
   brandNameTh: varchar('brand_name_th', { length: 255 }).notNull(),
   industry: varchar('industry', { length: 255 }).notNull(),
-  coreUsp: text('core_usp').notNull(),
-  targetAudience: text('target_audience'),
+  businessModel: varchar('business_model', { length: 50 }), // B2B, B2C, Subscription, Hybrid
+  coreUsp: jsonb('core_usp'), // CHANGED: Array of 2-3 USPs instead of single string
+  competitors: jsonb('competitors'), // NEW: Array of competitor names
+  taxId: varchar('tax_id', { length: 50 }), // NEW: For business invoicing
+  companyAddress: text('company_address'), // NEW: For official documents
+
+  // === STUDIO_DATA (Bucket 2) ===
   primaryColor: varchar('primary_color', { length: 7 }),
-  secondaryColor: varchar('secondary_color', { length: 7 }),
-  fontFamily: varchar('font_family', { length: 255 }),
+  secondaryColors: jsonb('secondary_colors'), // NEW: Array of hex colors
+  fontFamily: jsonb('font_family'), // CHANGED: Array [primary, secondary] instead of single
   moodKeywords: jsonb('mood_keywords'), // Array of mood keywords
-  toneOfVoice: varchar('tone_of_voice', { length: 255 }),
-  multilingualLevel: varchar('multilingual_level', { length: 50 }), // EN-only, EN-TH mix, TH-primary
-  brandHashtags: jsonb('brand_hashtags'), // Array of hashtags
+  videoStyle: text('video_style'), // NEW: Cinematic, fast-cut, slow-paced, etc.
+  forbiddenElements: jsonb('forbidden_elements'), // NEW: Array of forbidden visual elements
   logoUrl: text('logo_url'),
+
+  // === AGENCY_DATA (Bucket 3) ===
+  toneOfVoice: varchar('tone_of_voice', { length: 255 }),
+  targetAudience: text('target_audience'), // General description
+  targetPersona: text('target_persona'), // NEW: Detailed persona (age/job/lifestyle)
+  painPoints: jsonb('pain_points'), // NEW: Array of customer pain points
+  multilingualLevel: varchar('multilingual_level', { length: 50 }), // EN-only, EN-TH mix, TH-primary
+  forbiddenWords: jsonb('forbidden_words'), // NEW: Array of words to avoid
+  brandHashtags: jsonb('brand_hashtags'), // Array of hashtags
+  automationLineOa: varchar('automation_line_oa', { length: 255 }), // NEW: LINE OA for automation
+  automationEmail: varchar('automation_email', { length: 255 }), // NEW: Email for notifications
+
+  // === METADATA ===
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
