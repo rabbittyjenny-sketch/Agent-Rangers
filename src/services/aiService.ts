@@ -1,11 +1,13 @@
 /**
  * AI Service
  * Handles agent communication and response generation
+ * Integrated with Database Service for data persistence
  */
 
 import { Agent } from '../data/agents';
 import { MasterContext } from '../data/intelligence';
 import { orchestratorEngine, RoutingResult, FactCheckResult } from './orchestratorEngine';
+import { databaseService, MessageRecord, AgentLearningRecord } from './databaseService';
 
 export interface AIResponse {
   agentId: string;
@@ -50,6 +52,15 @@ class AIService {
       throw new Error('Master Context not initialized. Please complete onboarding first.');
     }
 
+    // Save user message to database
+    const userMessage: MessageRecord = {
+      brandId: 1, // Will be set to actual brand ID from context when available
+      role: 'user',
+      content: request.userInput,
+      createdAt: new Date()
+    };
+    await databaseService.saveMessage(userMessage);
+
     // Determine which agent to use
     let routingResult: RoutingResult;
 
@@ -86,6 +97,39 @@ class AIService {
       confidence: routingResult.confidence,
       timestamp: new Date().toISOString()
     };
+
+    // Save agent message to database
+    const agentMessage: MessageRecord = {
+      brandId: 1,
+      role: 'agent',
+      agentId: routingResult.agent.id,
+      agentName: routingResult.agent.name,
+      content: aiResponse.content,
+      confidence: routingResult.confidence,
+      validationResults: {
+        valid: factCheckResult.valid,
+        violations: factCheckResult.violations,
+        warnings: factCheckResult.warnings,
+        recommendations: factCheckResult.recommendations
+      },
+      createdAt: new Date()
+    };
+    await databaseService.saveMessage(agentMessage);
+
+    // Save agent learning/insights if applicable
+    if (routingResult.agent.id === 'market-analyst' && request.userInput.toLowerCase().includes('swot')) {
+      const learning: AgentLearningRecord = {
+        brandId: 1,
+        agentId: routingResult.agent.id,
+        agentName: routingResult.agent.name,
+        insight: 'Market analysis completed - SWOT analysis performed',
+        insightType: 'Analysis',
+        dataUsed: ['coreUSP', 'targetAudience', 'toneOfVoice', 'industry'],
+        confidence: routingResult.confidence,
+        actionable: true
+      };
+      await databaseService.saveAgentLearning(learning);
+    }
 
     // Add to history
     this.conversationHistory.push(aiResponse);
