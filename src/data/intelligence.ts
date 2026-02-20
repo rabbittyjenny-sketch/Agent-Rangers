@@ -20,6 +20,7 @@ export interface MasterContext {
 }
 
 // System Core Rules - Isolation, Anti-Copycat, Fact Check
+// These rules are enforced at Layer 1 (Orchestrator) as universal standards
 export const systemCoreRules = {
   isolation: {
     name: 'Brand Data Isolation',
@@ -28,17 +29,29 @@ export const systemCoreRules = {
       'ทุกข้อมูลลูกค้าต้องเก็บแยกตาม brand_id',
       'ห้ามเรียกข้อมูลแบรนด์อื่น',
       'Cache ต้องแยกตาม brand_id',
-      'Cross-Agent Logic ให้เฉพาะข้อมูลที่เกี่ยวข้องเท่านั้น'
+      'Cross-Agent Logic ให้เฉพาะข้อมูลที่เกี่ยวข้องเท่านั้น',
+      'Anonymous Learning: หากจะนำข้อมูลมาเรียนรู้ต้องลบชื่อแบรนด์และ PII ออกก่อนเสมอ'
     ]
   },
   antiCopycat: {
     name: 'Non-Plagiarism & IP Protection',
     description: 'ป้องกันการเลียนแบบและรักษาสิทธิ์ทางปัญญา',
     rules: [
-      'ห้ามใช้แคปชั่นหรือสโลแกนที่มีอยู่แล้ว 100%',
-      'ทุกแคปชั่นต้อง Rephrase ให้เข้ากับ Brand Voice',
-      'ห้ามเลียนแบบศิลปินมีตัวตน - ใช้เฉพาะ Mood & Tone Keywords',
-      'ทุกผลลัพธ์ต้องมี Unique Value ของแบรนด์นี้'
+      'ห้ามใช้แคปชั่นหรือสโลแกนที่มีอยู่แล้ว 100% ต้องมี Rephrase เสมอ',
+      'ทุกแคปชั่นต้อง Rephrase ให้เข้ากับ Brand Voice ของผู้ใช้',
+      'ห้ามแนะนำชื่อหรือสโลแกนที่จดทะเบียนเครื่องหมายการค้าแล้ว (No Trademark Violation)',
+      'Uniqueness check: ทุกผลลัพธ์ต้องมี Unique Value ของแบรนด์นี้',
+      'ห้ามนำ Case Study ของแบรนด์ A ไปตอบในห้องแชทของแบรนด์ B'
+    ]
+  },
+  artStyleProtection: {
+    name: 'Art Style Protection',
+    description: 'การป้องกันสไตล์งานภาพ - ห้ามเลียนแบบศิลปินมีตัวตน',
+    rules: [
+      'AI จะต้องไม่เจนภาพที่เลียนแบบลายเส้นของศิลปินที่มีตัวตนจริง',
+      'ใช้ "Mood & Tone Keywords" ของแบรนด์มาผสมผสานแทนชื่อศิลปิน',
+      'Original Prompting: สร้างจาก brand identity ไม่ใช่จากอ้างอิงศิลปินคนอื่น',
+      'ยกเว้นเฉพาะศิลปินสากลที่เป็น Public Domain (เสียชีวิตมานานกว่า 70 ปี)'
     ]
   },
   factCheck: {
@@ -50,6 +63,21 @@ export const systemCoreRules = {
       'Consistency Check: ตรวจทานกับ Master Context ทุกครั้ง',
       'Reference Validation: ต้องระบุแหล่งที่มาเมื่ออ้างอิง'
     ]
+  }
+};
+
+/**
+ * System-wide IP Protection Policy (injected into all agent system prompts)
+ */
+export const ipProtectionPolicy = {
+  systemPrompt: `คุณห้ามใช้ความลับทางการค้าจากประวัติการทำงานของแบรนด์อื่นมาตอบลูกค้าปัจจุบัน
+ผลลัพธ์ทุกอย่างต้องถูกปรับแต่ง (Customize) ให้เข้ากับบุคลิกของแบรนด์ที่ระบุไว้ใน brand_knowledge เท่านั้น
+ห้ามคัดลอกคำต่อคำจากแหล่งใดๆ ต้อง Rephrase ด้วย Brand Voice ของผู้ใช้เสมอ
+ห้ามเจนภาพเลียนแบบศิลปินมีตัวตน ใช้ Mood & Tone Keywords แทน`,
+  enforcement: {
+    preCheck: true,   // Check before generating content
+    postCheck: true,  // Validate after content is generated
+    blockOnViolation: true  // Block output if violation detected
   }
 };
 
@@ -291,6 +319,153 @@ export const onboardingSteps = [
     section: 'confirmation'
   }
 ];
+
+/**
+ * Part B: Task-Specific Data Collection (Onboarding Strategy)
+ * ข้อมูลเฉพาะงาน - Orchestrator จะถามเพิ่มเมื่อผู้ใช้กดใช้ Agent ตัวนั้นๆ
+ * "ไม่ขอทีเดียวหมด" - Smart Lazy approach
+ */
+export interface TaskSpecificPrompt {
+  agentId: string;
+  trigger: string; // When to ask
+  questions: {
+    id: string;
+    question: string;
+    questionTh: string;
+    type: 'text' | 'select' | 'multiselect';
+    options?: string[];
+    required: boolean;
+    placeholder?: string;
+  }[];
+}
+
+export const taskSpecificPrompts: TaskSpecificPrompt[] = [
+  {
+    agentId: 'automation-specialist',
+    trigger: 'first_use',
+    questions: [
+      {
+        id: 'automationTarget',
+        question: 'Where should the automation output appear?',
+        questionTh: 'คุณอยากให้ผลลัพธ์ไปโผล่ที่ไหน?',
+        type: 'select',
+        options: ['Email', 'LINE OA', 'Google Sheets', 'Webhook (Make.com)', 'Dashboard'],
+        required: true
+      },
+      {
+        id: 'automationSchedule',
+        question: 'How often should this run?',
+        questionTh: 'ต้องการให้ทำงานบ่อยแค่ไหน?',
+        type: 'select',
+        options: ['Every hour', 'Every 6 hours', 'Daily at 9AM', 'Weekdays only', 'Custom'],
+        required: true
+      },
+      {
+        id: 'automationNotify',
+        question: 'Should we notify you when automation completes?',
+        questionTh: 'ต้องการแจ้งเตือนเมื่อทำงานเสร็จไหม?',
+        type: 'select',
+        options: ['Yes - Email', 'Yes - LINE', 'No notification needed'],
+        required: false
+      }
+    ]
+  },
+  {
+    agentId: 'campaign-planner',
+    trigger: 'first_use',
+    questions: [
+      {
+        id: 'campaignBudget',
+        question: 'What is your monthly ad budget?',
+        questionTh: 'งบโฆษณาต่อเดือนประมาณเท่าไหร่?',
+        type: 'select',
+        options: ['Under 5,000 THB', '5,000-20,000 THB', '20,000-50,000 THB', '50,000+ THB', 'No budget yet'],
+        required: true
+      },
+      {
+        id: 'campaignPlatforms',
+        question: 'Which platforms do you want to focus on?',
+        questionTh: 'ต้องการเน้นแพลตฟอร์มไหนบ้าง?',
+        type: 'multiselect',
+        options: ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'LINE OA', 'Twitter/X'],
+        required: true
+      }
+    ]
+  },
+  {
+    agentId: 'video-generator-art',
+    trigger: 'first_use',
+    questions: [
+      {
+        id: 'videoFormat',
+        question: 'What video format do you need?',
+        questionTh: 'ต้องการวิดีโอรูปแบบไหน?',
+        type: 'select',
+        options: ['Short Clip (15-30s)', 'Medium (30-60s)', 'Long Form (1-5min)', 'Live Stream Ready'],
+        required: true
+      },
+      {
+        id: 'videoPlatform',
+        question: 'Primary platform for this video?',
+        questionTh: 'แพลตฟอร์มหลักสำหรับวิดีโอนี้?',
+        type: 'select',
+        options: ['TikTok (9:16)', 'Instagram Reels (9:16)', 'YouTube (16:9)', 'Facebook (1:1)'],
+        required: true
+      }
+    ]
+  },
+  {
+    agentId: 'video-generator-script',
+    trigger: 'first_use',
+    questions: [
+      {
+        id: 'scriptType',
+        question: 'What type of script do you need?',
+        questionTh: 'ต้องการสคริปต์แบบไหน?',
+        type: 'select',
+        options: ['Product Showcase', 'Tutorial/How-to', 'Story/Testimonial', 'Live Stream Script', 'Ad/Commercial'],
+        required: true
+      },
+      {
+        id: 'scriptDuration',
+        question: 'Target duration?',
+        questionTh: 'ความยาวเป้าหมาย?',
+        type: 'select',
+        options: ['15 seconds', '30 seconds', '60 seconds', '3-5 minutes', '30-60 minutes (Live)'],
+        required: true
+      }
+    ]
+  },
+  {
+    agentId: '_adhoc',
+    trigger: 'unknown_task',
+    questions: [
+      {
+        id: 'adHocGoal',
+        question: 'What is the goal of this task?',
+        questionTh: 'เป้าหมายของงานนี้คืออะไร?',
+        type: 'text',
+        required: true,
+        placeholder: 'e.g., Create a landing page for new product launch'
+      },
+      {
+        id: 'adHocOutputFormat',
+        question: 'What output format do you need?',
+        questionTh: 'ต้องการผลลัพธ์ในรูปแบบไหน?',
+        type: 'select',
+        options: ['Text/Document', 'Image/Visual', 'Spreadsheet/Data', 'Code/Script', 'Presentation'],
+        required: true
+      }
+    ]
+  }
+];
+
+/**
+ * Get task-specific prompts for an agent
+ */
+export function getTaskPrompts(agentId: string): TaskSpecificPrompt | undefined {
+  return taskSpecificPrompts.find(p => p.agentId === agentId);
+}
 
 // Daily Learning Topics (For Content Inspiration)
 export const dailyLearningTopics = {

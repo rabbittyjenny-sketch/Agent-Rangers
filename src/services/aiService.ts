@@ -4,7 +4,7 @@
  * Integrated with Database Service for data persistence
  */
 
-import { Agent } from '../data/agents';
+import { Agent, getAgentById } from '../data/agents';
 import { MasterContext } from '../data/intelligence';
 import { orchestratorEngine, RoutingResult, FactCheckResult } from './orchestratorEngine';
 import { databaseService, MessageRecord, AgentLearningRecord } from './databaseService';
@@ -26,6 +26,7 @@ export interface MessageRequest {
   brandId?: string;
   context?: MasterContext;
   forceAgent?: string; // Force specific agent
+  attachments?: Array<{ name: string; type: string; size: number; data?: string }>;
 }
 
 class AIService {
@@ -41,6 +42,17 @@ class AIService {
   }
 
   /**
+   * Safely save to database without blocking the response flow
+   */
+  private async safeSave(operation: () => Promise<any>, label: string): Promise<void> {
+    try {
+      await operation();
+    } catch (err) {
+      console.warn(`[AI Service] Non-blocking DB save failed (${label}):`, err);
+    }
+  }
+
+  /**
    * Process user message and generate response
    */
   async processMessage(request: MessageRequest): Promise<AIResponse> {
@@ -53,22 +65,32 @@ class AIService {
       throw new Error('Master Context not initialized. Please complete onboarding first.');
     }
 
-    // Save user message to database
+    // Save user message to database (non-blocking)
     const userMessage: MessageRecord = {
-      brandId: 1, // Will be set to actual brand ID from context when available
+      brandId: 1,
       role: 'user',
       content: request.userInput,
+      attachments: request.attachments?.map(f => ({ name: f.name, type: f.type, size: f.size })),
       createdAt: new Date()
     };
-    await databaseService.saveMessage(userMessage);
+    this.safeSave(() => databaseService.saveMessage(userMessage), 'user message');
 
     // Determine which agent to use
     let routingResult: RoutingResult;
 
     if (request.forceAgent) {
-      // Force specific agent
-      const agent = orchestratorEngine.route(request.userInput);
-      routingResult = agent;
+      // Force specific agent - use the forceAgent ID directly
+      const forcedAgent = getAgentById(request.forceAgent);
+      if (forcedAgent) {
+        routingResult = {
+          agent: forcedAgent,
+          cluster: forcedAgent.cluster,
+          confidence: 100,
+          reason: `Forced to agent: ${forcedAgent.name}`
+        };
+      } else {
+        routingResult = orchestratorEngine.route(request.userInput);
+      }
     } else {
       routingResult = orchestratorEngine.route(request.userInput);
     }
@@ -99,7 +121,7 @@ class AIService {
       timestamp: new Date().toISOString()
     };
 
-    // Save agent message to database
+    // Save agent message to database (non-blocking)
     const agentMessage: MessageRecord = {
       brandId: 1,
       role: 'agent',
@@ -115,9 +137,9 @@ class AIService {
       },
       createdAt: new Date()
     };
-    await databaseService.saveMessage(agentMessage);
+    this.safeSave(() => databaseService.saveMessage(agentMessage), 'agent message');
 
-    // Save agent learning/insights if applicable
+    // Save agent learning/insights if applicable (non-blocking)
     if (routingResult.agent.id === 'market-analyst' && request.userInput.toLowerCase().includes('swot')) {
       const learning: AgentLearningRecord = {
         brandId: 1,
@@ -129,7 +151,7 @@ class AIService {
         confidence: routingResult.confidence,
         actionable: true
       };
-      await databaseService.saveAgentLearning(learning);
+      this.safeSave(() => databaseService.saveAgentLearning(learning), 'agent learning');
     }
 
     // Add to history

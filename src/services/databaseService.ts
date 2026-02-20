@@ -84,6 +84,7 @@ export interface MessageRecord {
   attachments?: Array<{ name: string; type: string; size: number }>;
   confidence?: number;
   validationResults?: Record<string, any>;
+  createdAt?: Date;
 }
 
 export interface AgentLearningRecord {
