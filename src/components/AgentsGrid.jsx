@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getAgentsByCluster, clusterMetadata, getAgentById } from '../data/agents';
-import { ChevronLeft, MessageSquare, Zap, Send, Paperclip, Mic, MicOff, Loader2, Image as ImageIcon, X } from 'lucide-react';
+import { ChevronLeft, MessageSquare, Zap, Send, Paperclip, Mic, MicOff, Loader2, Image as ImageIcon, X, ClipboardList } from 'lucide-react';
 import { aiService } from '../services/aiService';
+import { orchestratorEngine } from '../services/orchestratorEngine';
 
 const AgentsGrid = ({ clusterId, onBack, onSelectAgent, masterContext }) => {
   const [selectedAgent, setSelectedAgent] = useState(null);
@@ -293,11 +294,49 @@ const ChatInterface = ({ agentId, masterContext, onClose }) => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [attachedFiles, setAttachedFiles] = useState([]);
   const [error, setError] = useState('');
+  const [showTaskPrompt, setShowTaskPrompt] = useState(false);
+  const [taskPromptData, setTaskPromptData] = useState({});
+  const [taskQuestions, setTaskQuestions] = useState(null);
+
+  // Check for Part B task-specific questions on mount
+  useEffect(() => {
+    if (orchestratorEngine.needsTaskSpecificData(agentId)) {
+      const prompts = orchestratorEngine.getTaskSpecificQuestions(agentId);
+      if (prompts) {
+        setTaskQuestions(prompts);
+        setShowTaskPrompt(true);
+      }
+    }
+  }, [agentId]);
+
+  const handleTaskPromptSubmit = () => {
+    // Save Part B data to orchestrator
+    orchestratorEngine.setTaskSpecificData(agentId, taskPromptData);
+    setShowTaskPrompt(false);
+
+    // Add a system message showing that task data was collected
+    const systemMsg = {
+      id: Date.now(),
+      role: 'agent',
+      content: `✅ Task preferences saved! I now have your specific settings for this session.\n\n${Object.entries(taskPromptData).map(([k, v]) => `• ${k}: ${v}`).join('\n')}\n\nHow can I help you today?`,
+      agentName: agent?.name,
+      timestamp: new Date()
+    };
+    setMessages((prev) => [...prev, systemMsg]);
+  };
+
+  const handleTaskPromptSkip = () => {
+    // Mark as seen but don't save data
+    orchestratorEngine.setTaskSpecificData(agentId, {});
+    setShowTaskPrompt(false);
+  };
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
+  const preVoiceInputRef = useRef('');
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -309,20 +348,34 @@ const ChatInterface = ({ agentId, masterContext, onClose }) => {
       recognitionRef.current.lang = 'th-TH'; // Thai language
 
       recognitionRef.current.onresult = (event) => {
-        let transcript = '';
+        let finalTranscript = '';
+        let interim = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interim += transcript;
+          }
         }
-        setInputValue((prev) => prev + transcript);
+        // Show interim text as preview (not committed to input)
+        setInterimTranscript(interim);
+        // Only append final (confirmed) transcript to input
+        if (finalTranscript) {
+          setInputValue((prev) => prev + finalTranscript);
+          setInterimTranscript('');
+        }
       };
 
       recognitionRef.current.onerror = (event) => {
         setError(`Speech recognition error: ${event.error}`);
         setIsListening(false);
+        setInterimTranscript('');
       };
 
       recognitionRef.current.onend = () => {
         setIsListening(false);
+        setInterimTranscript('');
       };
     }
   }, []);
@@ -337,29 +390,54 @@ const ChatInterface = ({ agentId, masterContext, onClose }) => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
 
-    if (!inputValue.trim() && attachedFiles.length === 0) return;
+    const textInput = inputValue.trim();
+    const hasFiles = attachedFiles.length > 0;
+
+    if (!textInput && !hasFiles) return;
+
+    // Build message content including file descriptions
+    let messageContent = textInput;
+    if (hasFiles && !textInput) {
+      const fileNames = attachedFiles.map((f) => f.name).join(', ');
+      messageContent = `[Attached: ${fileNames}]`;
+    }
+
+    // Build AI input that includes file context
+    let aiInput = textInput;
+    if (hasFiles) {
+      const fileDescriptions = attachedFiles
+        .map((f) => `${f.name} (${f.type}, ${Math.round(f.size / 1024)}KB)`)
+        .join(', ');
+      aiInput = textInput
+        ? `${textInput}\n\n[Attached files: ${fileDescriptions}]`
+        : `Please analyze the attached file(s): ${fileDescriptions}`;
+    }
 
     // Create user message with attachments
     const userMessage = {
       id: Date.now(),
       role: 'user',
-      content: inputValue || '(See attached file)',
+      content: messageContent,
       attachments: attachedFiles,
       timestamp: new Date()
     };
 
+    // Capture files before clearing state
+    const currentFiles = [...attachedFiles];
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setAttachedFiles([]);
+    setInterimTranscript('');
     setIsLoading(true);
     setError('');
 
     try {
       // Call the real AI Service to get agent response
       const aiResponse = await aiService.processMessage({
-        userInput: inputValue,
+        userInput: aiInput,
         context: masterContext,
-        forceAgent: agentId
+        forceAgent: agentId,
+        attachments: currentFiles
       });
 
       // Add agent's response
@@ -375,8 +453,8 @@ const ChatInterface = ({ agentId, masterContext, onClose }) => {
       setMessages((prev) => [...prev, agentMessage]);
       setIsLoading(false);
     } catch (err) {
-      setError(`Error: ${err.message}`);
       setIsLoading(false);
+      setError(`Error: ${err.message}`);
 
       // Fallback response
       const fallbackMessage = {
@@ -391,6 +469,8 @@ const ChatInterface = ({ agentId, masterContext, onClose }) => {
 
   const handleFileAttachment = (e) => {
     const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -404,8 +484,16 @@ const ChatInterface = ({ agentId, masterContext, onClose }) => {
           }
         ]);
       };
+      reader.onerror = () => {
+        setError(`Failed to read file: ${file.name}`);
+      };
       reader.readAsDataURL(file);
     });
+
+    // Reset file input so the same file can be re-attached
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const toggleSpeech = () => {
@@ -417,7 +505,9 @@ const ChatInterface = ({ agentId, masterContext, onClose }) => {
     if (isListening) {
       recognitionRef.current.stop();
       setIsListening(false);
+      setInterimTranscript('');
     } else {
+      preVoiceInputRef.current = inputValue;
       recognitionRef.current.start();
       setIsListening(true);
     }
@@ -455,9 +545,116 @@ const ChatInterface = ({ agentId, masterContext, onClose }) => {
         </div>
       )}
 
+      {/* Part B: Task-Specific Questions Overlay */}
+      {showTaskPrompt && taskQuestions && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(255,255,255,0.97)',
+          zIndex: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '20px',
+          overflowY: 'auto'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <ClipboardList size={18} style={{ color: '#FF1493' }} />
+            <h4 style={{ margin: 0, fontSize: '14px' }}>Quick Setup</h4>
+          </div>
+          <p style={{ fontSize: '11px', color: '#666', margin: '0 0 16px 0' }}>
+            A few quick questions to personalize your experience with this agent.
+          </p>
+          {taskQuestions.questions.map((q) => (
+            <div key={q.id} style={{ marginBottom: '14px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                {q.questionTh}
+                {q.required && <span style={{ color: '#FF1493' }}>*</span>}
+              </label>
+              {q.type === 'select' ? (
+                <select
+                  value={taskPromptData[q.id] || ''}
+                  onChange={(e) => setTaskPromptData(prev => ({ ...prev, [q.id]: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '8px', border: '1px solid #ddd',
+                    borderRadius: '6px', fontSize: '12px', fontFamily: 'inherit'
+                  }}
+                >
+                  <option value="">-- Select --</option>
+                  {q.options?.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              ) : q.type === 'multiselect' ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {q.options?.map(opt => {
+                    const selected = (taskPromptData[q.id] || '').includes(opt);
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          const current = taskPromptData[q.id] || '';
+                          const items = current ? current.split(', ').filter(Boolean) : [];
+                          const newItems = selected
+                            ? items.filter(i => i !== opt)
+                            : [...items, opt];
+                          setTaskPromptData(prev => ({ ...prev, [q.id]: newItems.join(', ') }));
+                        }}
+                        style={{
+                          padding: '5px 10px', fontSize: '11px', borderRadius: '4px',
+                          border: selected ? '2px solid #FF1493' : '1px solid #ddd',
+                          background: selected ? '#ffe0ec' : 'white',
+                          cursor: 'pointer', fontFamily: 'inherit'
+                        }}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={taskPromptData[q.id] || ''}
+                  onChange={(e) => setTaskPromptData(prev => ({ ...prev, [q.id]: e.target.value }))}
+                  placeholder={q.placeholder || ''}
+                  style={{
+                    width: '100%', padding: '8px', border: '1px solid #ddd',
+                    borderRadius: '6px', fontSize: '12px', fontFamily: 'inherit',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              )}
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+            <button
+              onClick={handleTaskPromptSubmit}
+              style={{
+                flex: 1, padding: '10px', background: '#FF1493', color: 'white',
+                border: 'none', borderRadius: '6px', fontSize: '12px',
+                fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+              }}
+            >
+              Save & Start
+            </button>
+            <button
+              onClick={handleTaskPromptSkip}
+              style={{
+                padding: '10px 16px', background: 'white', color: '#666',
+                border: '1px solid #ddd', borderRadius: '6px', fontSize: '12px',
+                cursor: 'pointer', fontFamily: 'inherit'
+              }}
+            >
+              Skip
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Chat Messages */}
       <div className="chat-messages">
-        {messages.length === 0 && (
+        {messages.length === 0 && !showTaskPrompt && (
           <div className="empty-chat">
             <p style={{ fontSize: '12px', color: '#999' }}>
               💬 Start a conversation with {agent?.name}
@@ -571,21 +768,26 @@ const ChatInterface = ({ agentId, masterContext, onClose }) => {
 
         <input
           type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Ask your question or use voice..."
+          value={inputValue + (interimTranscript ? interimTranscript : '')}
+          onChange={(e) => {
+            // Strip interim transcript portion if user types manually
+            setInterimTranscript('');
+            setInputValue(e.target.value);
+          }}
+          placeholder={isListening ? 'Listening...' : 'Ask your question or use voice...'}
           disabled={isLoading}
           style={{
             flex: 1,
             padding: '8px 12px',
-            border: '1px solid #ddd',
+            border: `1px solid ${isListening ? '#FF1493' : '#ddd'}`,
             borderRadius: '6px',
             fontSize: '12px',
             outline: 'none',
-            fontFamily: 'inherit'
+            fontFamily: 'inherit',
+            color: interimTranscript ? '#999' : '#333'
           }}
           onFocus={(e) => e.target.style.borderColor = '#FF1493'}
-          onBlur={(e) => e.target.style.borderColor = '#ddd'}
+          onBlur={(e) => { if (!isListening) e.target.style.borderColor = '#ddd'; }}
         />
 
         <button
@@ -626,6 +828,7 @@ const ChatInterface = ({ agentId, masterContext, onClose }) => {
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
           z-index: 1000;
           animation: slideUp 0.3s ease;
+          overflow: hidden;
         }
 
         @keyframes slideUp {
