@@ -5,6 +5,14 @@ import { resolve } from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [react()],
+    define: {
+        'process.env': {}
+    },
+    server: {
+        port: 3000,
+        open: true,
+        host: true
+    },
     build: {
         rollupOptions: {
             input: {
