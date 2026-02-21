@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { onboardingSteps } from '../data/intelligence';
 
-const Onboarding = ({ onComplete, onCancel }) => {
+const Onboarding = ({ onComplete, onCancel, onSkip }) => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
   const [formData, setFormData] = useState({
     brandNameTh: '',
     brandNameEn: '',
@@ -82,12 +83,18 @@ const Onboarding = ({ onComplete, onCancel }) => {
           .map((k) => k.trim())
           .filter((k) => k.length > 0);
 
+        // Convert coreUSP from string to array (split by comma)
+        const coreUSPArray = formData.coreUSP
+          .split(',')
+          .map((usp) => usp.trim())
+          .filter((usp) => usp.length > 0);
+
         const masterContext = {
           brandId: `brand_${Date.now()}`,
           brandNameTh: formData.brandNameTh,
           brandNameEn: formData.brandNameEn,
           industry: formData.industry,
-          coreUSP: formData.coreUSP,
+          coreUSP: coreUSPArray,
           visualStyle: {
             primaryColor: formData.primaryColor,
             moodKeywords
@@ -101,6 +108,29 @@ const Onboarding = ({ onComplete, onCancel }) => {
         onComplete(masterContext);
       }
     }
+  };
+
+  const handleSkip = () => {
+    // Create a default master context for users who skip onboarding
+    const defaultMasterContext = {
+      brandId: `temp_${Date.now()}`,
+      brandNameTh: 'Your Brand',
+      brandNameEn: 'Your Brand',
+      industry: 'General',
+      coreUSP: ['Not specified'],
+      visualStyle: {
+        primaryColor: '#5E9BEB',
+        moodKeywords: ['professional']
+      },
+      targetAudience: 'General audience',
+      toneOfVoice: 'professional',
+      createdAt: new Date().toISOString(),
+      lastUpdated: new Date().toISOString(),
+      isDefault: true
+    };
+
+    onSkip(defaultMasterContext);
+    setShowSkipConfirm(false);
   };
 
   const handleBack = () => {
@@ -201,6 +231,9 @@ const Onboarding = ({ onComplete, onCancel }) => {
                     />
                   )}
 
+                  {field.hint && !errors[field.id] && (
+                    <span className="hint-text">{field.hint}</span>
+                  )}
                   {errors[field.id] && <span className="error-text">{errors[field.id]}</span>}
                 </div>
               ))}
@@ -219,7 +252,7 @@ const Onboarding = ({ onComplete, onCancel }) => {
               </div>
               <div className="confirmation-item">
                 <span className="label">Core USP:</span>
-                <span className="value">{formData.coreUSP}</span>
+                <span className="value">{formData.coreUSP.split(',').map((u) => u.trim()).filter(u => u).join(', ')}</span>
               </div>
               <div className="confirmation-item">
                 <span className="label">Primary Color:</span>
@@ -261,12 +294,28 @@ const Onboarding = ({ onComplete, onCancel }) => {
             {currentStep > 1 ? 'Back' : 'Cancel'}
           </button>
 
+          {currentStep === 1 && (
+            <button
+              className="neo-btn"
+              onClick={() => setShowSkipConfirm(true)}
+              style={{
+                fontSize: '12px',
+                background: 'white',
+                color: '#666',
+                border: '2px solid #ddd'
+              }}
+            >
+              Skip Setup
+            </button>
+          )}
+
           <button
             className="neo-btn btn-primary"
             onClick={handleNext}
             style={{
               background: 'linear-gradient(135deg, #FF1493 0%, #FF69B4 100%)',
-              color: 'white'
+              color: 'white',
+              flex: currentStep === 1 ? 1 : 2
             }}
           >
             {currentStep === onboardingSteps.length - 1 ? (
@@ -282,6 +331,49 @@ const Onboarding = ({ onComplete, onCancel }) => {
             )}
           </button>
         </div>
+
+        {/* Skip Confirmation Modal */}
+        {showSkipConfirm && (
+          <div className="modal-overlay" onClick={() => setShowSkipConfirm(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <h2>Continue Without Brand Setup?</h2>
+              <div className="modal-warning">
+                <p>⚠️ <strong>Your system will:</strong></p>
+                <ul>
+                  <li>NOT remember your brand details</li>
+                  <li>Ask for information in each analysis/task</li>
+                  <li>Provide generic responses instead of customized ones</li>
+                  <li>Reset when you refresh the page</li>
+                </ul>
+              </div>
+              <div className="modal-checkbox">
+                <input type="checkbox" id="confirm-skip" defaultChecked />
+                <label htmlFor="confirm-skip">I understand and accept</label>
+              </div>
+              <div className="modal-actions">
+                <button
+                  className="neo-btn"
+                  onClick={() => setShowSkipConfirm(false)}
+                  style={{ flex: 1 }}
+                >
+                  Back to Setup
+                </button>
+                <button
+                  className="neo-btn"
+                  onClick={handleSkip}
+                  style={{
+                    flex: 1,
+                    background: '#FF1493',
+                    color: 'white',
+                    border: '2px solid #FF1493'
+                  }}
+                >
+                  Continue Without Setup
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Styles */}
@@ -421,6 +513,12 @@ const Onboarding = ({ onComplete, onCancel }) => {
           font-weight: 500;
         }
 
+        .hint-text {
+          font-size: 11px;
+          color: #999;
+          font-style: italic;
+        }
+
         .confirmation-section {
           display: flex;
           flex-direction: column;
@@ -488,6 +586,83 @@ const Onboarding = ({ onComplete, onCancel }) => {
           font-weight: 600;
         }
 
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.7);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 3000;
+          padding: 20px;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 16px;
+          padding: 30px;
+          max-width: 500px;
+          width: 100%;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+          animation: slideUp 0.4s ease;
+        }
+
+        .modal-content h2 {
+          margin: 0 0 20px 0;
+          font-size: 20px;
+          color: #333;
+        }
+
+        .modal-warning {
+          background: #fff8f0;
+          border-left: 4px solid #FF1493;
+          padding: 15px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+        }
+
+        .modal-warning p {
+          margin: 0 0 10px 0;
+          font-size: 13px;
+          color: #333;
+        }
+
+        .modal-warning ul {
+          margin: 0;
+          padding: 0 0 0 20px;
+          list-style: disc;
+        }
+
+        .modal-warning li {
+          margin: 5px 0;
+          font-size: 13px;
+          color: #666;
+        }
+
+        .modal-checkbox {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 20px;
+        }
+
+        .modal-checkbox input[type="checkbox"] {
+          width: 16px;
+          height: 16px;
+          cursor: pointer;
+        }
+
+        .modal-checkbox label {
+          font-size: 13px;
+          cursor: pointer;
+          color: #333;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 12px;
+        }
+
         @media (max-width: 600px) {
           .onboarding-wrapper {
             max-width: 100%;
@@ -495,6 +670,10 @@ const Onboarding = ({ onComplete, onCancel }) => {
           }
 
           .onboarding-content {
+            padding: 20px;
+          }
+
+          .modal-content {
             padding: 20px;
           }
         }

@@ -416,7 +416,7 @@ export const onboardingSteps = [
       { id: 'brandNameTh', label: 'ชื่อแบรนด์ (ไทย)', required: true },
       { id: 'brandNameEn', label: 'Brand Name (English)', required: true },
       { id: 'industry', label: 'ประเภทธุรกิจ', required: true },
-      { id: 'coreUSP', label: 'จุดเด่นหลัก (Core USP)', required: true }
+      { id: 'coreUSP', label: 'จุดเด่นหลัก (Core USP)', required: true, hint: 'You can enter 1-3 USPs separated by commas (e.g., "Premium quality, Eco-friendly, Local support")' }
     ]
   },
   {

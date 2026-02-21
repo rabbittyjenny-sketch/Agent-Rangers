@@ -71,6 +71,22 @@ const App = () => {
     setCurrentView('hero');
   };
 
+  // Handle Onboarding Skip (user wants to continue without brand setup)
+  const handleOnboardingSkip = (defaultContext) => {
+    // Save to localStorage
+    localStorage.setItem('socialFactory_masterContext', JSON.stringify(defaultContext));
+
+    // Initialize services with the default context
+    setMasterContext(defaultContext);
+    orchestratorEngine.setMasterContext(defaultContext);
+    aiService.initialize(defaultContext);
+    setSystemReady(true);
+
+    // Show message and return to hero
+    alert(`ℹ️ System Ready!\n\nYou're using default brand settings.\nYou can setup your brand details later by clicking "Setup Brand" in the header.`);
+    setCurrentView('hero');
+  };
+
   // Handle Agent Selection
   const handleSelectAgent = (agentId) => {
     console.log('Selected agent:', agentId);
@@ -110,6 +126,7 @@ const App = () => {
           <Onboarding
             onComplete={handleOnboardingComplete}
             onCancel={handleOnboardingCancel}
+            onSkip={handleOnboardingSkip}
           />
         );
 
