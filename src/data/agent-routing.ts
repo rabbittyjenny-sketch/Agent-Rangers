@@ -273,8 +273,9 @@ export function findBestRoute(request: JobRequest): RoutingDecision {
 }
 
 /**
- * Validate Output Quality
- * ใช้ก่อนส่งผลลัพธ์ให้ผู้ใช้
+ * Quick Output Validation (Lightweight version)
+ * Use validation-rules.ts for comprehensive validation
+ * This is for quick routing checks only
  */
 export interface OutputValidation {
   isValid: boolean;
@@ -285,82 +286,29 @@ export interface OutputValidation {
 
 export function validateAgentOutput(
   agentId: string,
-  output: any,
-  masterContext: any
+  output: any
 ): OutputValidation {
   const issues: string[] = [];
   const warnings: string[] = [];
   let confidence = 1.0;
 
-  // Check 1: Output Format
+  // Basic checks only
   if (!output || typeof output !== 'object') {
     issues.push(`Output ต้องเป็น Object - ได้รับ ${typeof output}`);
-    confidence -= 0.5;
+    return { isValid: false, issues, warnings, confidence: 0 };
   }
 
-  // Check 2: Required Fields
+  // Check required fields
   const requiredFields = ['task', 'result', 'reasoning'];
-  for (const field of requiredFields) {
-    if (!output[field]) {
-      warnings.push(`ไม่พบ "${field}" - แนะนำให้เพิ่มเติม`);
-      confidence -= 0.1;
-    }
-  }
+  const missingFields = requiredFields.filter(f => !output[f]);
 
-  // Check 3: Fact Grounding
-  if (output.result && typeof output.result === 'string') {
-    const hallucMarkers = [
-      'ฉันประมาณ',
-      'น่าจะ',
-      'อาจจะ',
-      'สมมุติว่า',
-      'ถ้าหาก'
-    ];
-
-    if (hallucMarkers.some(m => output.result.includes(m))) {
-      warnings.push('พบตัวบ่งชี้ Hallucination - ควรอ้างอิงข้อมูลจริง');
-      confidence -= 0.2;
-    }
-  }
-
-  // Check 4: Agent-Specific Constraints
-  const agentConstraints: {
-    [key: string]: (output: any) => string[];
-  } = {
-    'market-analyst': (o) => {
-      const issues = [];
-      if (!o.sources) issues.push('ต้องระบุ Sources');
-      if (!o.confidence) issues.push('ต้องให้ Confidence Score');
-      return issues;
-    },
-    'business-planner': (o) => {
-      const issues = [];
-      if (!o.calculations) issues.push('ต้องแสดง Calculations');
-      if (!o.tradeoffs) issues.push('ต้องแสดง Trade-offs');
-      return issues;
-    },
-    'insights-agent': (o) => {
-      const issues = [];
-      if (!o.dataSource) issues.push('ต้องระบุ Data Source');
-      if (!o.metrics) issues.push('ต้องระบุ Metrics ที่ใช้');
-      return issues;
-    },
-    'caption-creator': (o) => {
-      const issues = [];
-      if (!o.templates) issues.push('ต้องให้ Templates');
-      if (!o.styleGuide) issues.push('ต้องให้ Style Guide');
-      return issues;
-    }
-  };
-
-  if (agentConstraints[agentId]) {
-    const agentIssues = agentConstraints[agentId](output);
-    issues.push(...agentIssues);
-    confidence -= agentIssues.length * 0.1;
+  if (missingFields.length > 0) {
+    issues.push(`ขาดฟิลด์: ${missingFields.join(', ')}`);
+    confidence -= missingFields.length * 0.15;
   }
 
   return {
-    isValid: issues.length === 0,
+    isValid: issues.length === 0 && confidence > 0.5,
     issues,
     warnings,
     confidence: Math.max(0, confidence)
