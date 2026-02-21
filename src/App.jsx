@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-// Import new components
+// Import new pages
+import { HomePage, Dashboard, AgentChat, TaskMonitor, BrandManager } from './pages';
+
+// Import legacy components (kept for backward compatibility)
 import Hero from './components/Hero';
 import AgentsGrid from './components/AgentsGrid';
 import Onboarding from './components/Onboarding';
-
-// Import legacy component (kept for backward compatibility)
 import CaptionFactoryUpload from './components/CaptionFactory';
 
 // Import services
@@ -15,14 +16,17 @@ import { aiService } from './services/aiService';
 import { databaseService } from './services/databaseService';
 
 const App = () => {
-  const [currentView, setCurrentView] = useState('hero'); // hero, agents, onboarding, caption-factory
+  const [currentView, setCurrentView] = useState('home');
+  // Views: home, dashboard, chat, tasks, brands, onboarding, legacy-hero, legacy-agents, caption-factory
+
   const [selectedCluster, setSelectedCluster] = useState(null);
+  const [selectedAgent, setSelectedAgent] = useState(null);
+  const [selectedBrand, setSelectedBrand] = useState(null);
   const [masterContext, setMasterContext] = useState(null);
   const [systemReady, setSystemReady] = useState(false);
 
   // Load Master Context from localStorage on mount
   useEffect(() => {
-    // Initialize database service and log status
     console.log('🗄️  Database Service Status:', databaseService.getStatus());
 
     const savedContext = localStorage.getItem('socialFactory_masterContext');
@@ -39,55 +43,111 @@ const App = () => {
     }
   }, []);
 
-  // Handle Cluster Selection
+  // Navigation Handlers
   const handleSelectCluster = (clusterId) => {
     setSelectedCluster(clusterId);
-    setCurrentView('agents');
+    setCurrentView('dashboard');
   };
 
-  // Handle Onboarding Start
+  const handleSelectAgent = (agentId) => {
+    setSelectedAgent(agentId);
+    setCurrentView('chat');
+  };
+
+  const handleSelectBrand = (brandId) => {
+    setSelectedBrand(brandId);
+  };
+
   const handleStartOnboarding = () => {
     setCurrentView('onboarding');
   };
 
-  // Handle Onboarding Complete
   const handleOnboardingComplete = (context) => {
-    // Save to localStorage
     localStorage.setItem('socialFactory_masterContext', JSON.stringify(context));
-
-    // Initialize services with the new context
     setMasterContext(context);
     orchestratorEngine.setMasterContext(context);
     aiService.initialize(context);
     setSystemReady(true);
-
-    // Show success message and return to hero
     alert(`✅ Onboarding Complete!\n\nBrand: ${context.brandNameTh}\nSystem is ready to help you!`);
-    setCurrentView('hero');
+    setCurrentView('home');
   };
 
-  // Handle Onboarding Cancel
   const handleOnboardingCancel = () => {
-    setCurrentView('hero');
+    setCurrentView('home');
   };
 
-  // Handle Agent Selection
-  const handleSelectAgent = (agentId) => {
-    console.log('Selected agent:', agentId);
-    // In a real implementation, this would open a chat interface
-    // For now, we're showing the chat in AgentsGrid component
+  const handleOnboardingSkip = (defaultContext) => {
+    localStorage.setItem('socialFactory_masterContext', JSON.stringify(defaultContext));
+    setMasterContext(defaultContext);
+    orchestratorEngine.setMasterContext(defaultContext);
+    aiService.initialize(defaultContext);
+    setSystemReady(true);
+    alert(`ℹ️ System Ready!\n\nYou're using default brand settings.\nYou can setup your brand details later by clicking "Setup Brand" in the header.`);
+    setCurrentView('home');
   };
 
-  // Handle Navigation Back
   const handleBack = () => {
     setSelectedCluster(null);
-    setCurrentView('hero');
+    setSelectedAgent(null);
+    setCurrentView('home');
   };
 
   // Render different views
   const renderView = () => {
     switch (currentView) {
-      case 'hero':
+      case 'home':
+        return (
+          <HomePage
+            onSelectCluster={handleSelectCluster}
+            onStartOnboarding={handleStartOnboarding}
+            isLoggedIn={systemReady && masterContext}
+          />
+        );
+
+      case 'dashboard':
+        return (
+          <Dashboard
+            clusterId={selectedCluster}
+            onBack={handleBack}
+            onSelectAgent={handleSelectAgent}
+            masterContext={masterContext}
+          />
+        );
+
+      case 'chat':
+        return (
+          <AgentChat
+            agentId={selectedAgent}
+            onBack={handleBack}
+            masterContext={masterContext}
+          />
+        );
+
+      case 'tasks':
+        return (
+          <TaskMonitor onBack={handleBack} />
+        );
+
+      case 'brands':
+        return (
+          <BrandManager
+            masterContext={masterContext}
+            onBack={handleBack}
+            onSelectBrand={handleSelectBrand}
+          />
+        );
+
+      case 'onboarding':
+        return (
+          <Onboarding
+            onComplete={handleOnboardingComplete}
+            onCancel={handleOnboardingCancel}
+            onSkip={handleOnboardingSkip}
+          />
+        );
+
+      // Legacy views (kept for backward compatibility)
+      case 'legacy-hero':
         return (
           <Hero
             onSelectCluster={handleSelectCluster}
@@ -95,7 +155,7 @@ const App = () => {
           />
         );
 
-      case 'agents':
+      case 'legacy-agents':
         return (
           <AgentsGrid
             clusterId={selectedCluster}
@@ -105,22 +165,15 @@ const App = () => {
           />
         );
 
-      case 'onboarding':
-        return (
-          <Onboarding
-            onComplete={handleOnboardingComplete}
-            onCancel={handleOnboardingCancel}
-          />
-        );
-
       case 'caption-factory':
         return <CaptionFactoryUpload />;
 
       default:
         return (
-          <Hero
+          <HomePage
             onSelectCluster={handleSelectCluster}
             onStartOnboarding={handleStartOnboarding}
+            isLoggedIn={systemReady && masterContext}
           />
         );
     }
@@ -133,7 +186,7 @@ const App = () => {
         <div className="header-content">
           <button
             className="brand-logo"
-            onClick={() => setCurrentView('hero')}
+            onClick={() => setCurrentView('home')}
             style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
           >
             <img src="/ideas365-logo.png" alt="iDEAS365" style={{ height: '40px' }} />
@@ -141,10 +194,29 @@ const App = () => {
 
           <nav className="header-nav">
             {systemReady && masterContext && (
-              <div className="context-badge">
-                <span className="badge-label">Brand:</span>
-                <span className="badge-value">{masterContext.brandNameTh}</span>
-              </div>
+              <>
+                <div className="context-badge">
+                  <span className="badge-label">Brand:</span>
+                  <span className="badge-value">{masterContext.brandNameTh}</span>
+                </div>
+
+                <div className="header-nav-buttons">
+                  <button
+                    className="neo-btn"
+                    onClick={() => setCurrentView('tasks')}
+                    style={{ fontSize: '12px', padding: '8px 16px' }}
+                  >
+                    📊 Tasks
+                  </button>
+                  <button
+                    className="neo-btn"
+                    onClick={() => setCurrentView('brands')}
+                    style={{ fontSize: '12px', padding: '8px 16px' }}
+                  >
+                    🏢 Brands
+                  </button>
+                </div>
+              </>
             )}
 
             {!masterContext && (
@@ -185,8 +257,15 @@ const App = () => {
           --c-cyan: #00CED1;
           --c-yellow: #FFD700;
           --c-green: #00FF7F;
+          --c-sapphire: #5E9BEB;
           --shadow-hard: 0 4px 12px rgba(0, 0, 0, 0.12);
           --shadow-hard-hover: 0 8px 24px rgba(0, 0, 0, 0.16);
+
+          /* Dark mode variables (prepared for future use) */
+          --dm-bg: #1a1a1a;
+          --dm-surface: #2d2d2d;
+          --dm-text: #ffffff;
+          --dm-text-secondary: #b0b0b0;
         }
 
         .neo-btn {
@@ -256,6 +335,11 @@ const App = () => {
           gap: 20px;
         }
 
+        .header-nav-buttons {
+          display: flex;
+          gap: 10px;
+        }
+
         .context-badge {
           display: flex;
           align-items: center;
@@ -302,6 +386,17 @@ const App = () => {
           .header-nav {
             width: 100%;
             justify-content: center;
+            flex-wrap: wrap;
+          }
+
+          .header-nav-buttons {
+            flex-wrap: wrap;
+            justify-content: center;
+          }
+
+          .neo-btn {
+            font-size: 11px;
+            padding: 6px 12px;
           }
         }
       `}</style>

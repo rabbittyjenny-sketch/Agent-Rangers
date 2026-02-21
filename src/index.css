@@ -13,12 +13,25 @@
   --c-black: #000000;
   /* Solid Black */
 
+  /* iDEAS365 Design System Colors */
+  --c-sapphire: #5E9BEB;
+  --c-slate-light: #f3f4f6;
+  --c-slate-dark: #1f2937;
+
   --font-main: 'Outfit', system-ui, sans-serif;
+  --font-sarabun: 'Sarabun', sans-serif;
 
   --shadow-hard: 4px 4px 0px 0px var(--c-black);
   --shadow-hard-hover: 6px 6px 0px 0px var(--c-black);
   --border-black: 2px solid var(--c-black);
   --radius-main: 12px;
+
+  /* Dark Mode Variables (prepared for future use) */
+  --dm-bg: #1a1a1a;
+  --dm-surface: #2d2d2d;
+  --dm-text: #ffffff;
+  --dm-text-secondary: #b0b0b0;
+  --dm-border: #404040;
 }
 
 body {
@@ -75,4 +88,20 @@ button {
 
 .neo-input:focus {
   box-shadow: var(--shadow-hard);
+}
+
+/* Tailwind CSS Directives */
+@import "tailwindcss";
+
+/* Dark Mode Support (prepared for future use) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --dm-bg: #1a1a1a;
+    --dm-surface: #2d2d2d;
+    --dm-text: #ffffff;
+    --dm-text-secondary: #b0b0b0;
+    --dm-border: #404040;
+  }
+
+  /* Dark mode styles will be added here */
 }
