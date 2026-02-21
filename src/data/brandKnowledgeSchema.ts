@@ -15,10 +15,10 @@ export interface BrandKnowledgeSchema {
   created_by: string;                  // Email of brand owner
 
   // ========================================
-  // STRATEGIST DATA SECTION
+  // STRATEGY DATA SECTION
   // (ใช้โดย: Market Analyst, Business Planner, Insights Agent)
   // ========================================
-  strategist_data: {
+  strategy_data: {
     industry: string;                  // ประเภทธุรกิจ (e.g., Cafe, Fashion, Tech)
     business_model: string;            // B2B, B2C, D2C, Subscription, Marketplace
 
@@ -67,10 +67,10 @@ export interface BrandKnowledgeSchema {
   };
 
   // ========================================
-  // STUDIO DATA SECTION
+  // CREATIVE DATA SECTION
   // (ใช้โดย: Brand Builder, Design Agent, Video Generator Art)
   // ========================================
-  studio_data: {
+  creative_data: {
     visual_identity: {
       // Color System
       colors: {
@@ -121,10 +121,10 @@ export interface BrandKnowledgeSchema {
   };
 
   // ========================================
-  // AGENCY DATA SECTION
+  // GROWTH DATA SECTION
   // (ใช้โดย: Caption Creator, Campaign Planner, Video Generator Script, Automation Specialist)
   // ========================================
-  agency_data: {
+  growth_data: {
     // Audience Profile
     target_audience: {
       personas: {
@@ -269,9 +269,9 @@ export interface BrandKnowledgeSchema {
 // TYPE EXPORTS FOR EACH CLUSTER
 // ========================================
 
-export type StrategistDataSet = BrandKnowledgeSchema['strategist_data'];
-export type StudioDataSet = BrandKnowledgeSchema['studio_data'];
-export type AgencyDataSet = BrandKnowledgeSchema['agency_data'];
+export type StrategyDataSet = BrandKnowledgeSchema['strategy_data'];
+export type CreativeDataSet = BrandKnowledgeSchema['creative_data'];
+export type GrowthDataSet = BrandKnowledgeSchema['growth_data'];
 export type CrossDataSet = BrandKnowledgeSchema['cross_data'];
 
 /**
@@ -280,53 +280,53 @@ export type CrossDataSet = BrandKnowledgeSchema['cross_data'];
  */
 export class BrandKnowledgeDistributor {
   /**
-   * Get Strategist Data (for Market Analyst, Business Planner, Insights Agent)
+   * Get Strategy Data (for Market Analyst, Business Planner, Insights Agent)
    */
-  static getStrategistContext(schema: BrandKnowledgeSchema) {
+  static getStrategyContext(schema: BrandKnowledgeSchema) {
     return {
       brand_id: schema.brand_id,
       brand_name_th: schema.brand_name_th,
       brand_name_en: schema.brand_name_en,
-      industry: schema.strategist_data.industry,
-      usp: schema.strategist_data.usp,
-      competitors: schema.strategist_data.competitors,
-      pricing: schema.strategist_data.pricing_strategy,
-      legal_info: schema.strategist_data.legal_info,
-      metrics: schema.strategist_data.current_metrics,
+      industry: schema.strategy_data.industry,
+      usp: schema.strategy_data.usp,
+      competitors: schema.strategy_data.competitors,
+      pricing: schema.strategy_data.pricing_strategy,
+      legal_info: schema.strategy_data.legal_info,
+      metrics: schema.strategy_data.current_metrics,
       brand_values: schema.cross_data.brand_values,
       constraints: schema.cross_data.constraints
     };
   }
 
   /**
-   * Get Studio Data (for Brand Builder, Design Agent, Video Generator Art)
+   * Get Creative Data (for Brand Builder, Design Agent, Video Generator Art)
    */
-  static getStudioContext(schema: BrandKnowledgeSchema) {
+  static getCreativeContext(schema: BrandKnowledgeSchema) {
     return {
       brand_id: schema.brand_id,
       brand_name_th: schema.brand_name_th,
-      visual_identity: schema.studio_data.visual_identity,
-      brand_assets: schema.studio_data.brand_assets,
-      accessibility: schema.studio_data.accessibility,
-      mood_keywords: schema.studio_data.visual_identity.mood_keywords,
+      visual_identity: schema.creative_data.visual_identity,
+      brand_assets: schema.creative_data.brand_assets,
+      accessibility: schema.creative_data.accessibility,
+      mood_keywords: schema.creative_data.visual_identity.mood_keywords,
       brand_values: schema.cross_data.brand_values
     };
   }
 
   /**
-   * Get Agency Data (for Caption Creator, Campaign Planner, Video Generator Script, Automation Specialist)
+   * Get Growth Data (for Caption Creator, Campaign Planner, Video Generator Script, Automation Specialist)
    */
-  static getAgencyContext(schema: BrandKnowledgeSchema) {
+  static getGrowthContext(schema: BrandKnowledgeSchema) {
     return {
       brand_id: schema.brand_id,
       brand_name_th: schema.brand_name_th,
-      target_audience: schema.agency_data.target_audience,
-      communication: schema.agency_data.communication,
-      platform_strategy: schema.agency_data.platform_strategy,
-      marketing_calendar: schema.agency_data.marketing_calendar,
-      automation_needs: schema.agency_data.automation_needs,
-      usp: schema.strategist_data.usp,
-      visual_identity: schema.studio_data.visual_identity,
+      target_audience: schema.growth_data.target_audience,
+      communication: schema.growth_data.communication,
+      platform_strategy: schema.growth_data.platform_strategy,
+      marketing_calendar: schema.growth_data.marketing_calendar,
+      automation_needs: schema.growth_data.automation_needs,
+      usp: schema.strategy_data.usp,
+      visual_identity: schema.creative_data.visual_identity,
       brand_values: schema.cross_data.brand_values,
       constraints: schema.cross_data.constraints
     };
@@ -340,12 +340,12 @@ export class BrandKnowledgeDistributor {
       brand_id: schema.brand_id,
       brand_name_th: schema.brand_name_th,
       brand_name_en: schema.brand_name_en,
-      usp: schema.strategist_data.usp,
-      mood_keywords: schema.studio_data.visual_identity.mood_keywords,
-      tone_of_voice: schema.agency_data.communication.tone_of_voice,
-      target_audience: schema.agency_data.target_audience,
-      primary_platform: schema.agency_data.platform_strategy.primary_platform,
-      automation_needs: schema.agency_data.automation_needs
+      usp: schema.strategy_data.usp,
+      mood_keywords: schema.creative_data.visual_identity.mood_keywords,
+      tone_of_voice: schema.growth_data.communication.tone_of_voice,
+      target_audience: schema.growth_data.target_audience,
+      primary_platform: schema.growth_data.platform_strategy.primary_platform,
+      automation_needs: schema.growth_data.automation_needs
     };
   }
 
@@ -356,9 +356,9 @@ export class BrandKnowledgeDistributor {
     return {
       brand_id: schema.brand_id,
       brand_name_th: schema.brand_name_th,
-      usp: schema.strategist_data.usp.primary,
-      tone: schema.agency_data.communication.tone_of_voice,
-      mood: schema.studio_data.visual_identity.mood_keywords
+      usp: schema.strategy_data.usp.primary,
+      tone: schema.growth_data.communication.tone_of_voice,
+      mood: schema.creative_data.visual_identity.mood_keywords
     };
   }
 }
@@ -373,7 +373,7 @@ export const exampleBrandSchema: BrandKnowledgeSchema = {
   updated_at: new Date().toISOString(),
   created_by: 'owner@artcoffee.com',
 
-  strategist_data: {
+  strategy_data: {
     industry: 'Cafe & Coffee Shop',
     business_model: 'B2C + Online',
 
@@ -418,7 +418,7 @@ export const exampleBrandSchema: BrandKnowledgeSchema = {
     }
   },
 
-  studio_data: {
+  creative_data: {
     visual_identity: {
       colors: {
         primary: '#8B4513',
@@ -460,7 +460,7 @@ export const exampleBrandSchema: BrandKnowledgeSchema = {
     }
   },
 
-  agency_data: {
+  growth_data: {
     target_audience: {
       personas: [
         {

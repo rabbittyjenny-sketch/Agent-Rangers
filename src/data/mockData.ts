@@ -244,37 +244,37 @@ export const mockDashboardData = {
 export const routingTestCases = [
   {
     input: 'วิเคราะห์ SWOT ร้านกาแฟ',
-    expectedCluster: 'strategist',
+    expectedCluster: 'strategy',
     expectedAgent: 'market-analyst',
     reason: 'Contains SWOT keyword - Market Analyst'
   },
   {
     input: 'ออกแบบโลโก้ใหม่สำหรับแบรนด์',
-    expectedCluster: 'studio',
+    expectedCluster: 'creative',
     expectedAgent: 'design-agent',
     reason: 'Contains design/logo keyword - Design Agent'
   },
   {
     input: 'วางแผนแคมเปญ 30 วัน',
-    expectedCluster: 'agency',
+    expectedCluster: 'growth',
     expectedAgent: 'campaign-planner',
     reason: 'Contains campaign keyword - Campaign Planner'
   },
   {
     input: 'คำนวณต้นทุนและตั้งราคา',
-    expectedCluster: 'strategist',
+    expectedCluster: 'strategy',
     expectedAgent: 'business-planner',
     reason: 'Contains cost/pricing keyword - Business Planner'
   },
   {
     input: 'Color Palette สำหรับแบรนด์อาหาร',
-    expectedCluster: 'studio',
+    expectedCluster: 'creative',
     expectedAgent: 'design-agent',
     reason: 'Contains color/design keyword - Design Agent'
   },
   {
     input: 'เขียนแคปชั่นให้หลายสไตล์',
-    expectedCluster: 'agency',
+    expectedCluster: 'growth',
     expectedAgent: 'caption-creator',
     reason: 'Contains caption keyword - Caption Creator'
   }

@@ -261,18 +261,18 @@ class AIService {
 - Core USP: ${uspArray.join(', ')}`;
 
     // Add cluster-specific context
-    if (agent.cluster === 'strategist') {
-      contextMsg += `\n## Strategist Data
+    if (agent.cluster === 'strategy') {
+      contextMsg += `\n## Strategy Data
 - Business Model: ${context.businessModel || 'B2C'}
 - Target Audience: ${context.targetAudience}
 - Tone of Voice: ${context.toneOfVoice}`;
-    } else if (agent.cluster === 'studio') {
-      contextMsg += `\n## Studio Data
+    } else if (agent.cluster === 'creative') {
+      contextMsg += `\n## Creative Data
 - Primary Color: ${context.visualStyle?.primaryColor}
 - Mood & Tone: ${context.visualStyle?.moodKeywords?.join(', ')}
 - Video Style: ${context.visualStyle?.videoStyle || 'Not specified'}`;
-    } else if (agent.cluster === 'agency') {
-      contextMsg += `\n## Agency Data
+    } else if (agent.cluster === 'growth') {
+      contextMsg += `\n## Growth Data
 - Target Persona: ${context.targetPersona || context.targetAudience}
 - Tone of Voice: ${context.toneOfVoice}
 - Brand Hashtags: ${context.brandHashtags?.join(', ') || 'Not specified'}`;

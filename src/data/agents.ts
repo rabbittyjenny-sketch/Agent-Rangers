@@ -7,7 +7,7 @@ export interface Agent {
   id: string;
   name: string;
   nameEn: string;
-  cluster: 'strategist' | 'studio' | 'agency';
+  cluster: 'strategy' | 'creative' | 'growth';
   emoji: string;
   color: string;
   description: string;
@@ -18,13 +18,13 @@ export interface Agent {
   systemPrompt: string;
 }
 
-// The Strategist Cluster - วิเคราะห์ธุรกิจ (Logic & Numbers)
-export const strategistAgents: Agent[] = [
+// The Strategy Team - วิเคราะห์ธุรกิจ (Logic & Numbers)
+export const strategyAgents: Agent[] = [
   {
     id: 'market-analyst',
     name: 'Market Analyst',
     nameEn: 'Market Analyst',
-    cluster: 'strategist',
+    cluster: 'strategy',
     emoji: '📊',
     color: '#FF6B6B',
     description: 'วิเคราะห์ตลาด ศึกษาคู่แข่ง หาช่องว่าง (Gap)',
@@ -58,7 +58,7 @@ CONSTRAINTS:
     id: 'business-planner',
     name: 'Business Planner',
     nameEn: 'Business Planner',
-    cluster: 'strategist',
+    cluster: 'strategy',
     emoji: '💰',
     color: '#4ECDC4',
     description: 'คำนวณต้นทุน วางแผนการเงิน ตั้งราคา',
@@ -92,7 +92,7 @@ CONSTRAINTS:
     id: 'insights-agent',
     name: 'Insights Agent',
     nameEn: 'Insights Agent',
-    cluster: 'strategist',
+    cluster: 'strategy',
     emoji: '📈',
     color: '#95E1D3',
     description: 'ดักจับ KPI วิเคราะห์ยอดขาย ประเมินผลแผน',
@@ -124,13 +124,13 @@ CONSTRAINTS:
   }
 ];
 
-// The Studio Cluster - สร้างแบรนด์ (Branding & Aesthetics)
-export const studioAgents: Agent[] = [
+// The Creative Team - สร้างแบรนด์ (Branding & Aesthetics)
+export const creativeAgents: Agent[] = [
   {
     id: 'brand-builder',
     name: 'Brand Builder',
     nameEn: 'Brand Builder',
-    cluster: 'studio',
+    cluster: 'creative',
     emoji: '🎨',
     color: '#FFB6C1',
     description: 'กำหนด Mood & Tone บุคลิกของแบรนด์',
@@ -164,7 +164,7 @@ CONSTRAINTS:
     id: 'design-agent',
     name: 'Design Agent',
     nameEn: 'Design Agent',
-    cluster: 'studio',
+    cluster: 'creative',
     emoji: '✏️',
     color: '#DDA15E',
     description: 'ออกแบบ Logo CI Art Direction',
@@ -199,7 +199,7 @@ CONSTRAINTS:
     id: 'video-generator-art',
     name: 'Video Generator (Art)',
     nameEn: 'Video Generator - Art Focus',
-    cluster: 'studio',
+    cluster: 'creative',
     emoji: '🎬',
     color: '#BC6C25',
     description: 'ออกแบบ Theme วิดีโอ คลิป Media ตามแนวแบรนด์',
@@ -231,13 +231,13 @@ CONSTRAINTS:
   }
 ];
 
-// The Agency Cluster - สื่อสาร (Content & Promotion)
-export const agencyAgents: Agent[] = [
+// The Growth Team - สื่อสาร (Content & Promotion)
+export const growthAgents: Agent[] = [
   {
     id: 'caption-creator',
     name: 'Caption Creator',
     nameEn: 'Caption Creator',
-    cluster: 'agency',
+    cluster: 'growth',
     emoji: '💬',
     color: '#FF1493',
     description: 'เขียนแคปชั่น 6 สไตล์ × 4 ภาษา',
@@ -271,7 +271,7 @@ CONSTRAINTS:
     id: 'campaign-planner',
     name: 'Campaign Planner',
     nameEn: 'Campaign Planner',
-    cluster: 'agency',
+    cluster: 'growth',
     emoji: '📅',
     color: '#00CED1',
     description: 'วางแผน Content 30 วัน ตามเทรนด์และเทศกาล',
@@ -305,7 +305,7 @@ CONSTRAINTS:
     id: 'video-generator-script',
     name: 'Video Generator (Script)',
     nameEn: 'Video Generator - Script & Production',
-    cluster: 'agency',
+    cluster: 'growth',
     emoji: '🎞️',
     color: '#FF4500',
     description: 'เขียนสคริปต์ วิดีโอ ตามกระแสเทรนด์',
@@ -339,7 +339,7 @@ CONSTRAINTS:
     id: 'automation-specialist',
     name: 'Automation Specialist',
     nameEn: 'Automation Specialist',
-    cluster: 'agency',
+    cluster: 'growth',
     emoji: '⚙️',
     color: '#00FFB4',
     description: 'อัตโนมัติสร้างคอนเทนต์ จัดโพสต์ ควบคุม Make.com',
@@ -382,7 +382,7 @@ export const orchestratorAgent: Agent = {
   id: 'orchestrator',
   name: 'Orchestrator',
   nameEn: 'Orchestrator Engine',
-  cluster: 'strategist',
+  cluster: 'strategy',
   emoji: '🧠',
   color: '#9D4EDD',
   description: 'สมองกลางที่จัดการ Intent Recognition Smart Routing Context Management',
@@ -426,11 +426,11 @@ CONSTRAINTS:
 
 // Helper function to get all agents
 export function getAllAgents(): Agent[] {
-  return [...strategistAgents, ...studioAgents, ...agencyAgents];
+  return [...strategyAgents, ...creativeAgents, ...growthAgents];
 }
 
 // Helper function to get agents by cluster
-export function getAgentsByCluster(cluster: 'strategist' | 'studio' | 'agency'): Agent[] {
+export function getAgentsByCluster(cluster: 'strategy' | 'creative' | 'growth'): Agent[] {
   return getAllAgents().filter(agent => agent.cluster === cluster);
 }
 
@@ -442,25 +442,25 @@ export function getAgentById(id: string): Agent | undefined {
 
 // Cluster metadata
 export const clusterMetadata = {
-  strategist: {
-    name: 'The Strategist',
-    nameTh: 'ฝ่ายสถาปนิก',
+  strategy: {
+    name: 'Strategy Team',
+    nameTh: 'ทีมวางแผน',
     emoji: '🧠',
     color: '#FF6B6B',
     description: 'วิเคราะห์ธุรกิจ เน้น Logic & Numbers',
     icon: 'BarChart3'
   },
-  studio: {
-    name: 'The Studio',
-    nameTh: 'ฝ่ายสร้างแบรนด์',
+  creative: {
+    name: 'Creative Team',
+    nameTh: 'ทีมสร้างสรรค์',
     emoji: '🎨',
     color: '#FFB6C1',
     description: 'สร้างแบรนด์ เน้น Branding & Aesthetics',
     icon: 'Palette'
   },
-  agency: {
-    name: 'The Agency',
-    nameTh: 'ฝ่ายสื่อสาร',
+  growth: {
+    name: 'Growth Team',
+    nameTh: 'ทีมขยายธุรกิจ',
     emoji: '🚀',
     color: '#FF1493',
     description: 'สื่อสารและขาย เน้น Content & Promotion',

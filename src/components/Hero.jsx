@@ -7,9 +7,9 @@ const Hero = ({ onSelectCluster, onStartOnboarding }) => {
 
   const clusters = [
     {
-      id: 'strategist',
-      title: 'The Strategist',
-      titleTh: 'ฝ่ายสถาปนิก',
+      id: 'strategy',
+      title: 'Strategy Team',
+      titleTh: 'ทีมวางแผน',
       emoji: '🧠',
       description: 'วิเคราะห์ธุรกิจและกลยุทธ์',
       descriptionEn: 'Business Analysis & Strategy',
@@ -23,9 +23,9 @@ const Hero = ({ onSelectCluster, onStartOnboarding }) => {
       ]
     },
     {
-      id: 'studio',
-      title: 'The Studio',
-      titleTh: 'ฝ่ายสร้างแบรนด์',
+      id: 'creative',
+      title: 'Creative Team',
+      titleTh: 'ทีมสร้างสรรค์',
       emoji: '🎨',
       description: 'ออกแบบและสร้างแบรนด์',
       descriptionEn: 'Brand & Design',
@@ -39,9 +39,9 @@ const Hero = ({ onSelectCluster, onStartOnboarding }) => {
       ]
     },
     {
-      id: 'agency',
-      title: 'The Agency',
-      titleTh: 'ฝ่ายสื่อสาร',
+      id: 'growth',
+      title: 'Growth Team',
+      titleTh: 'ทีมขยายธุรกิจ',
       emoji: '🚀',
       description: 'สร้างคอนเทนต์และสื่อสาร',
       descriptionEn: 'Content & Growth',

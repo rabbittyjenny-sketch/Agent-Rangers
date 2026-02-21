@@ -116,8 +116,8 @@ export class OrchestratorEngine {
     };
 
     switch (cluster) {
-      case 'strategist':
-        // The Strategist: Full strategist_data + analytics fields
+      case 'strategy':
+        // The Strategy Team: Full strategy_data + analytics fields
         return {
           ...baseContext,
           coreUSP: context.coreUSP,
@@ -130,8 +130,8 @@ export class OrchestratorEngine {
           toneOfVoice: context.toneOfVoice,
         };
 
-      case 'studio':
-        // The Studio: Visual identity + studio_data
+      case 'creative':
+        // The Creative Team: Visual identity + creative_data
         return {
           ...baseContext,
           coreUSP: context.coreUSP, // For USP visual integration
@@ -141,7 +141,7 @@ export class OrchestratorEngine {
           toneOfVoice: context.toneOfVoice, // For brand voice alignment
         };
 
-      case 'agency':
+      case 'growth':
         // The Agency: Audience + communication + cross-data (USP for sales hook)
         return {
           ...baseContext,
@@ -282,25 +282,25 @@ export class OrchestratorEngine {
     const input = userInput.toLowerCase();
     const clusters: string[] = [];
 
-    // Check for strategist keywords
-    const strategistKeywords = routingKeywords.strategist;
-    if (strategistKeywords.some(keyword => input.includes(keyword))) {
-      clusters.push('strategist');
+    // Check for strategy keywords
+    const strategyKeywords = routingKeywords.strategy;
+    if (strategyKeywords.some(keyword => input.includes(keyword))) {
+      clusters.push('strategy');
     }
 
-    // Check for studio keywords
-    const studioKeywords = routingKeywords.studio;
-    if (studioKeywords.some(keyword => input.includes(keyword))) {
-      clusters.push('studio');
+    // Check for creative keywords
+    const creativeKeywords = routingKeywords.creative;
+    if (creativeKeywords.some(keyword => input.includes(keyword))) {
+      clusters.push('creative');
     }
 
-    // Check for agency keywords
-    const agencyKeywords = routingKeywords.agency;
-    if (agencyKeywords.some(keyword => input.includes(keyword))) {
-      clusters.push('agency');
+    // Check for growth keywords
+    const growthKeywords = routingKeywords.growth;
+    if (growthKeywords.some(keyword => input.includes(keyword))) {
+      clusters.push('growth');
     }
 
-    return clusters.length > 0 ? clusters : ['strategist']; // Default to strategist
+    return clusters.length > 0 ? clusters : ['strategy']; // Default to strategy
   }
 
   /**
@@ -340,15 +340,15 @@ export class OrchestratorEngine {
     // Fallback routing based on cluster keywords
     if (!bestMatch) {
       const intent = this.recognizeIntent(userInput);
-      if (intent.includes('strategist')) {
-        bestMatch = getAllAgents().find(a => a.cluster === 'strategist');
-        reason = 'Routed to Strategist cluster by intent';
-      } else if (intent.includes('studio')) {
-        bestMatch = getAllAgents().find(a => a.cluster === 'studio');
-        reason = 'Routed to Studio cluster by intent';
-      } else if (intent.includes('agency')) {
-        bestMatch = getAllAgents().find(a => a.cluster === 'agency');
-        reason = 'Routed to Agency cluster by intent';
+      if (intent.includes('strategy')) {
+        bestMatch = getAllAgents().find(a => a.cluster === 'strategy');
+        reason = 'Routed to Strategy cluster by intent';
+      } else if (intent.includes('creative')) {
+        bestMatch = getAllAgents().find(a => a.cluster === 'creative');
+        reason = 'Routed to Creative cluster by intent';
+      } else if (intent.includes('growth')) {
+        bestMatch = getAllAgents().find(a => a.cluster === 'growth');
+        reason = 'Routed to Growth cluster by intent';
       }
     }
 
@@ -356,7 +356,7 @@ export class OrchestratorEngine {
 
     return {
       agent: bestMatch || null,
-      cluster: bestMatch?.cluster || 'strategist',
+      cluster: bestMatch?.cluster || 'strategy',
       confidence,
       reason
     };

@@ -10,7 +10,7 @@ export interface MasterContext {
   brandNameEn: string;
   industry: string;
 
-  // === STRATEGIST_DATA (Bucket 1) ===
+  // === STRATEGY_DATA (Bucket 1) ===
   coreUSP: string[]; // CHANGED: Array of 2-3 USPs instead of single string
   businessModel?: string; // B2B, B2C, Subscription, Hybrid
   competitors?: string[]; // Array of competitor names for analysis
@@ -19,7 +19,7 @@ export interface MasterContext {
     companyAddress: string;
   };
 
-  // === STUDIO_DATA (Bucket 2) ===
+  // === CREATIVE_DATA (Bucket 2) ===
   visualStyle: {
     primaryColor: string;
     secondaryColors?: string[]; // Array of hex colors
@@ -29,7 +29,7 @@ export interface MasterContext {
     forbiddenElements?: string[]; // Visual elements to avoid
   };
 
-  // === AGENCY_DATA (Bucket 3) ===
+  // === GROWTH_DATA (Bucket 3) ===
   targetAudience: string; // General description
   targetPersona?: string; // Detailed persona (age/job/lifestyle)
   painPoints?: string[]; // Array of customer pain points
@@ -93,7 +93,7 @@ export const systemCoreRules = {
       'Consistency Check: ตรวจทานกับ Master Context + Brand Knowledge Template ทุกครั้ง',
       'Reference Validation: ต้องระบุแหล่งที่มาเมื่ออ้างอิง (citation required)',
       'Data-Driven Claims: สถิติและตัวเลขต้องมีแหล่งที่มาชัดเจน หากไม่มีให้ใช้คำว่า "อ้างอิง/ประมาณการ"',
-      'Tone Alignment: ตรวจว่าโทนเสียงตรงกับ agency_data.communication.tone_of_voice'
+      'Tone Alignment: ตรวจว่าโทนเสียงตรงกับ growth_data.communication.tone_of_voice'
     ]
   },
   verificationAndQuality: {
@@ -137,7 +137,7 @@ export const ipProtectionPolicy = {
 
 // Knowledge Base by Cluster
 export const clusterKnowledge = {
-  strategist: {
+  strategy: {
     name: 'The Strategist Knowledge Base',
     description: 'ความรู้เกี่ยวกับวิเคราะห์ธุรกิจ กลยุทธ์ การเงิน',
     domains: [
@@ -159,7 +159,7 @@ export const clusterKnowledge = {
       'KPIs สำคัญมีอะไรบ้าง?'
     ]
   },
-  studio: {
+  creative: {
     name: 'The Studio Knowledge Base',
     description: 'ความรู้เกี่ยวกับออกแบบ แบรนด์ และศิลป์',
     domains: [
@@ -181,7 +181,7 @@ export const clusterKnowledge = {
       'จัด Moodboard ให้หน่อย'
     ]
   },
-  agency: {
+  growth: {
     name: 'The Agency Knowledge Base',
     description: 'ความรู้เกี่ยวกับสื่อสาร คอนเทนต์ และการขาย',
     domains: [
@@ -207,7 +207,7 @@ export const clusterKnowledge = {
 
 // Routing Keywords Mapping
 export const routingKeywords = {
-  strategist: [
+  strategy: [
     // Market Analyst
     'SWOT', 'competitor', 'market', 'gap', 'opportunity', 'trend',
     'analysis', 'research', 'customer behavior', 'audience insight',
@@ -218,7 +218,7 @@ export const routingKeywords = {
     'KPI', 'analytics', 'performance', 'metrics', 'report', 'dashboard',
     'insight', 'data', 'forecast', 'projection'
   ],
-  studio: [
+  creative: [
     // Brand Builder
     'brand', 'identity', 'mood', 'tone', 'personality', 'value', 'voice',
     'positioning', 'guidelines',
@@ -229,7 +229,7 @@ export const routingKeywords = {
     'video', 'theme', 'concept', 'visual', 'story', 'motion', 'animation',
     'showroom', 'media'
   ],
-  agency: [
+  growth: [
     // Caption Creator
     'caption', 'content', 'copy', 'text', 'multilingual', 'emoji', 'CTA',
     'hashtag', 'style', 'emotion',
@@ -452,7 +452,7 @@ export interface BrandKnowledgeTemplate {
   updated_at: string;
 
   // Bucket 1: Strategist Data (The Strategist Cluster)
-  strategist_data: {
+  strategy_data: {
     brand_name: string;
     brand_name_en: string;
     industry: string;
@@ -466,7 +466,7 @@ export interface BrandKnowledgeTemplate {
   };
 
   // Bucket 2: Studio Data (The Studio Cluster)
-  studio_data: {
+  creative_data: {
     visual_identity: {
       primary_color: string; // #HEX_CODE
       secondary_colors?: string[]; // [#HEX1, #HEX2]
@@ -481,7 +481,7 @@ export interface BrandKnowledgeTemplate {
   };
 
   // Bucket 3: Agency Data (The Agency Cluster)
-  agency_data: {
+  growth_data: {
     target_audience: {
       persona: string; // "อายุ/อาชีพ/ไลฟ์สไตล์"
       pain_points?: string[]; // ปัญหาที่ลูกค้าเจอ
