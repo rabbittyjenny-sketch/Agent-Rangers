@@ -8,6 +8,7 @@ import { Agent, getAgentById } from '../data/agents';
 import { MasterContext } from '../data/intelligence';
 import { orchestratorEngine, RoutingResult, FactCheckResult } from './orchestratorEngine';
 import { databaseService, MessageRecord, AgentLearningRecord } from './databaseService';
+import { databaseContextService, getAgentContext, recordLearning } from './databaseContextService';
 import { automationService } from './automationService';
 
 export interface AIResponse {
@@ -65,9 +66,13 @@ class AIService {
       throw new Error('Master Context not initialized. Please complete onboarding first.');
     }
 
+    // Get brandId from request or use masterContext
+    const brandId = request.brandId || this.masterContext?.brandId || '1';
+    const numericBrandId = typeof brandId === 'string' ? parseInt(brandId) : brandId || 1;
+
     // Save user message to database (non-blocking)
     const userMessage: MessageRecord = {
-      brandId: 1,
+      brandId: numericBrandId,
       role: 'user',
       content: request.userInput,
       attachments: request.attachments?.map(f => ({ name: f.name, type: f.type, size: f.size })),
@@ -99,11 +104,15 @@ class AIService {
       throw new Error('Could not route to appropriate agent');
     }
 
+    // ✨ NEW: Fetch database context for the agent
+    const dbContext = await getAgentContext(numericBrandId, routingResult.agent.cluster);
+
     // Generate response based on agent type
     const agentResponse = await this.generateAgentResponse(
       routingResult.agent,
       request.userInput,
-      this.masterContext
+      this.masterContext,
+      dbContext
     );
 
     // Fact check the response
@@ -123,7 +132,7 @@ class AIService {
 
     // Save agent message to database (non-blocking)
     const agentMessage: MessageRecord = {
-      brandId: 1,
+      brandId: numericBrandId,
       role: 'agent',
       agentId: routingResult.agent.id,
       agentName: routingResult.agent.name,
@@ -139,19 +148,29 @@ class AIService {
     };
     this.safeSave(() => databaseService.saveMessage(agentMessage), 'agent message');
 
-    // Save agent learning/insights if applicable (non-blocking)
-    if (routingResult.agent.id === 'market-analyst' && request.userInput.toLowerCase().includes('swot')) {
-      const learning: AgentLearningRecord = {
-        brandId: 1,
-        agentId: routingResult.agent.id,
-        agentName: routingResult.agent.name,
-        insight: 'Market analysis completed - SWOT analysis performed',
-        insightType: 'Analysis',
-        dataUsed: ['coreUSP', 'targetAudience', 'toneOfVoice', 'industry'],
-        confidence: routingResult.confidence,
-        actionable: true
-      };
-      this.safeSave(() => databaseService.saveAgentLearning(learning), 'agent learning');
+    // ✨ NEW: Universal agent learning - ALL agents record insights (non-blocking)
+    const insight = this.extractInsightFromResponse(
+      routingResult.agent.id,
+      request.userInput,
+      agentResponse
+    );
+
+    if (insight) {
+      const fieldsUsed = dbContext
+        ? databaseContextService.getFieldsUsedByAgent(routingResult.agent.id, dbContext)
+        : [];
+
+      this.safeSave(
+        () => recordLearning(
+          numericBrandId,
+          routingResult.agent.id,
+          routingResult.agent.name,
+          insight,
+          fieldsUsed,
+          routingResult.confidence
+        ),
+        'agent learning'
+      );
     }
 
     // Add to history
@@ -163,30 +182,32 @@ class AIService {
   /**
    * Generate response based on agent
    * Now calls Claude API with proper system prompt and context
+   * ✨ NEW: Includes database context for smarter decisions
    */
   private async generateAgentResponse(
     agent: Agent,
     userInput: string,
-    context: MasterContext
+    context: MasterContext,
+    dbContext?: any
   ): Promise<string> {
     try {
       // Try to call Claude API with system prompt
-      const response = await this.callClaudeAPI(agent, userInput, context);
+      const response = await this.callClaudeAPI(agent, userInput, context, dbContext);
       return response;
     } catch (error) {
       console.warn(`Claude API call failed for ${agent.id}, falling back to template:`, error);
       // Fallback to template if API fails
       const agentResponses: { [key: string]: string } = {
-        'market-analyst': this.generateMarketAnalystResponse(userInput, context),
-        'business-planner': this.generateBusinessPlannerResponse(userInput, context),
-        'insights-agent': this.generateInsightsResponse(userInput, context),
-        'brand-builder': this.generateBrandBuilderResponse(userInput, context),
-        'design-agent': this.generateDesignResponse(userInput, context),
-        'video-generator-art': this.generateVideoArtResponse(userInput, context),
-        'caption-creator': this.generateCaptionResponse(userInput, context),
-        'campaign-planner': this.generateCampaignResponse(userInput, context),
-        'video-generator-script': this.generateVideoScriptResponse(userInput, context),
-        'automation-specialist': this.generateAutomationResponse(userInput, context)
+        'market-analyst': this.generateMarketAnalystResponse(userInput, context, dbContext),
+        'business-planner': this.generateBusinessPlannerResponse(userInput, context, dbContext),
+        'insights-agent': this.generateInsightsResponse(userInput, context, dbContext),
+        'brand-builder': this.generateBrandBuilderResponse(userInput, context, dbContext),
+        'design-agent': this.generateDesignResponse(userInput, context, dbContext),
+        'video-generator-art': this.generateVideoArtResponse(userInput, context, dbContext),
+        'caption-creator': this.generateCaptionResponse(userInput, context, dbContext),
+        'campaign-planner': this.generateCampaignResponse(userInput, context, dbContext),
+        'video-generator-script': this.generateVideoScriptResponse(userInput, context, dbContext),
+        'automation-specialist': this.generateAutomationResponse(userInput, context, dbContext)
       };
       return agentResponses[agent.id] || 'Agent response not available';
     }
@@ -195,11 +216,13 @@ class AIService {
   /**
    * Call Claude API with agent system prompt and context
    * This is the REAL AI integration - uses Claude model with proper prompting
+   * ✨ NEW: Includes database context for enhanced responses
    */
   private async callClaudeAPI(
     agent: Agent,
     userInput: string,
-    context: MasterContext
+    context: MasterContext,
+    dbContext?: any
   ): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     const model = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
@@ -209,7 +232,8 @@ class AIService {
     }
 
     // Build context message with Brand Knowledge Template (3-bucket style)
-    const contextInfo = this.buildContextMessage(agent, context);
+    // ✨ NEW: Include database context for enriched data
+    const contextInfo = this.buildContextMessage(agent, context, dbContext);
 
     // Construct messages for Claude API
     const messages = [
@@ -248,8 +272,9 @@ class AIService {
   /**
    * Build context message with Brand Knowledge Template
    * Sends relevant data based on agent cluster (Smart Lazy distribution)
+   * ✨ NEW: Enhanced with database context for richer decision-making
    */
-  private buildContextMessage(agent: Agent, context: MasterContext): string {
+  private buildContextMessage(agent: Agent, context: MasterContext, dbContext?: any): string {
     const uspArray = Array.isArray(context.coreUSP) ? context.coreUSP : [context.coreUSP];
 
     let contextMsg = `# Brand Context for ${context.brandNameTh}
@@ -260,31 +285,83 @@ class AIService {
 - Industry: ${context.industry}
 - Core USP: ${uspArray.join(', ')}`;
 
-    // Add cluster-specific context
+    // Add cluster-specific context from MasterContext
     if (agent.cluster === 'strategy') {
       contextMsg += `\n## Strategy Data
 - Business Model: ${context.businessModel || 'B2C'}
 - Target Audience: ${context.targetAudience}
 - Tone of Voice: ${context.toneOfVoice}`;
+
+      // ✨ Enrich with database context
+      if (dbContext?.competitors && dbContext.competitors.length > 0) {
+        contextMsg += `\n- Competitors: ${dbContext.competitors.join(', ')}`;
+      }
     } else if (agent.cluster === 'creative') {
       contextMsg += `\n## Creative Data
 - Primary Color: ${context.visualStyle?.primaryColor}
 - Mood & Tone: ${context.visualStyle?.moodKeywords?.join(', ')}
 - Video Style: ${context.visualStyle?.videoStyle || 'Not specified'}`;
+
+      // ✨ Enrich with database context
+      if (dbContext?.forbiddenElements && dbContext.forbiddenElements.length > 0) {
+        contextMsg += `\n- Forbidden Elements: ${dbContext.forbiddenElements.join(', ')}`;
+      }
+      if (dbContext?.secondaryColors && dbContext.secondaryColors.length > 0) {
+        contextMsg += `\n- Secondary Colors: ${dbContext.secondaryColors.join(', ')}`;
+      }
     } else if (agent.cluster === 'growth') {
       contextMsg += `\n## Growth Data
 - Target Persona: ${context.targetPersona || context.targetAudience}
 - Tone of Voice: ${context.toneOfVoice}
 - Brand Hashtags: ${context.brandHashtags?.join(', ') || 'Not specified'}`;
+
+      // ✨ Enrich with database context
+      if (dbContext?.forbiddenWords && dbContext.forbiddenWords.length > 0) {
+        contextMsg += `\n- Forbidden Words: ${dbContext.forbiddenWords.join(', ')}`;
+      }
+      if (dbContext?.painPoints && dbContext.painPoints.length > 0) {
+        contextMsg += `\n- Customer Pain Points: ${dbContext.painPoints.join(', ')}`;
+      }
     }
 
     return contextMsg;
   }
 
   /**
-   * Market Analyst Response Template
+   * Extract insight from agent response for learning database
+   * Analyzes response to identify actionable insights
    */
-  private generateMarketAnalystResponse(input: string, context: MasterContext): string {
+  private extractInsightFromResponse(agentId: string, userInput: string, response: string): string | null {
+    // Skip if response is too short
+    if (!response || response.length < 50) return null;
+
+    // Generate insight based on agent and input
+    const inputKeywords = userInput.toLowerCase().split(' ');
+    let insight = `${agentId} analyzed: ${userInput.substring(0, 100)}...`;
+
+    // Add specific insights based on agent type
+    if (agentId === 'market-analyst' && userInput.toLowerCase().includes('swot')) {
+      insight = `SWOT analysis completed for market evaluation`;
+    } else if (agentId === 'brand-builder' && userInput.toLowerCase().includes('brand')) {
+      insight = `Brand identity and positioning analysis performed`;
+    } else if (agentId === 'design-agent' && userInput.toLowerCase().includes('design')) {
+      insight = `Design system and visual guidelines created`;
+    } else if (agentId === 'caption-creator' && userInput.toLowerCase().includes('caption')) {
+      insight = `Social media captions generated and optimized`;
+    } else if (agentId === 'campaign-planner' && userInput.toLowerCase().includes('campaign')) {
+      insight = `Campaign strategy and content calendar planned`;
+    } else if (agentId === 'automation-specialist' && userInput.toLowerCase().includes('automat')) {
+      insight = `Automation workflows configured and optimized`;
+    }
+
+    return insight;
+  }
+
+  /**
+   * Market Analyst Response Template
+   * ✨ NEW: Includes database context parameter
+   */
+  private generateMarketAnalystResponse(input: string, context: MasterContext, dbContext?: any): string {
     const isSwot = input.toLowerCase().includes('swot');
 
     if (isSwot) {
@@ -327,7 +404,7 @@ Core Value: ${context.coreUSP}
   /**
    * Business Planner Response Template
    */
-  private generateBusinessPlannerResponse(input: string, context: MasterContext): string {
+  private generateBusinessPlannerResponse(input: string, context: MasterContext, dbContext?: any): string {
     if (input.toLowerCase().includes('pricing') || input.toLowerCase().includes('ราคา')) {
       return `💰 Pricing Strategy สำหรับ ${context.brandNameTh}
 
@@ -365,7 +442,7 @@ Core Value: ${context.coreUSP}
   /**
    * Insights Agent Response Template
    */
-  private generateInsightsResponse(input: string, context: MasterContext): string {
+  private generateInsightsResponse(input: string, context: MasterContext, dbContext?: any): string {
     return `📈 Analytics & Insights สำหรับ ${context.brandNameTh}
 
 Key Metrics to Track:
@@ -386,7 +463,7 @@ Dashboard ควรมี:
   /**
    * Brand Builder Response Template
    */
-  private generateBrandBuilderResponse(input: string, context: MasterContext): string {
+  private generateBrandBuilderResponse(input: string, context: MasterContext, dbContext?: any): string {
     return `🎨 Brand Identity Guide สำหรับ ${context.brandNameTh}
 
 Brand Essence:
@@ -411,7 +488,7 @@ Brand Promise:
   /**
    * Design Agent Response Template
    */
-  private generateDesignResponse(input: string, context: MasterContext): string {
+  private generateDesignResponse(input: string, context: MasterContext, dbContext?: any): string {
     return `✏️ Design Guidelines สำหรับ ${context.brandNameTh}
 
 Color Palette:
@@ -442,7 +519,7 @@ Landing Page Structure (Reference: Land-book.com):
   /**
    * Video Generator (Art) Response Template
    */
-  private generateVideoArtResponse(input: string, context: MasterContext): string {
+  private generateVideoArtResponse(input: string, context: MasterContext, dbContext?: any): string {
     return `🎬 Video Creative Direction สำหรับ ${context.brandNameTh}
 
 Theme Concept:
@@ -468,7 +545,7 @@ Production Notes:
   /**
    * Caption Creator Response Template
    */
-  private generateCaptionResponse(input: string, context: MasterContext): string {
+  private generateCaptionResponse(input: string, context: MasterContext, dbContext?: any): string {
     return `💬 Caption Writing - 6 Styles × Multi-language
 
 Caption Styles สำหรับ ${context.brandNameTh}:
@@ -509,7 +586,7 @@ Language Variations:
   /**
    * Campaign Planner Response Template
    */
-  private generateCampaignResponse(input: string, context: MasterContext): string {
+  private generateCampaignResponse(input: string, context: MasterContext, dbContext?: any): string {
     return `📅 30-Day Content Calendar สำหรับ ${context.brandNameTh}
 
 Campaign Strategy - Double Digit Approach:
@@ -544,7 +621,7 @@ Content Mix (Diversify):
   /**
    * Automation Specialist Response Template
    */
-  private generateAutomationResponse(input: string, context: MasterContext): string {
+  private generateAutomationResponse(input: string, context: MasterContext, dbContext?: any): string {
     const isScheduling = input.toLowerCase().includes('schedule') || input.toLowerCase().includes('automat');
     const isMakeCom = input.toLowerCase().includes('make.com') || input.toLowerCase().includes('webhook');
 
@@ -654,7 +731,7 @@ What would you like to automate?
   /**
    * Video Generator (Script) Response Template
    */
-  private generateVideoScriptResponse(input: string, context: MasterContext): string {
+  private generateVideoScriptResponse(input: string, context: MasterContext, dbContext?: any): string {
     return `🎞️ Video Script & Production Guide สำหรับ ${context.brandNameTh}
 
 Production Specifications:
