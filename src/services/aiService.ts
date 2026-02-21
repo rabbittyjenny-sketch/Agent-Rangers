@@ -162,30 +162,123 @@ class AIService {
 
   /**
    * Generate response based on agent
+   * Now calls Claude API with proper system prompt and context
    */
   private async generateAgentResponse(
     agent: Agent,
     userInput: string,
     context: MasterContext
   ): Promise<string> {
-    // Simulate agent processing (in real implementation, would call actual API)
-    const processingTime = Math.random() * 1000 + 500; // 500-1500ms
-    await new Promise(resolve => setTimeout(resolve, processingTime));
+    try {
+      // Try to call Claude API with system prompt
+      const response = await this.callClaudeAPI(agent, userInput, context);
+      return response;
+    } catch (error) {
+      console.warn(`Claude API call failed for ${agent.id}, falling back to template:`, error);
+      // Fallback to template if API fails
+      const agentResponses: { [key: string]: string } = {
+        'market-analyst': this.generateMarketAnalystResponse(userInput, context),
+        'business-planner': this.generateBusinessPlannerResponse(userInput, context),
+        'insights-agent': this.generateInsightsResponse(userInput, context),
+        'brand-builder': this.generateBrandBuilderResponse(userInput, context),
+        'design-agent': this.generateDesignResponse(userInput, context),
+        'video-generator-art': this.generateVideoArtResponse(userInput, context),
+        'caption-creator': this.generateCaptionResponse(userInput, context),
+        'campaign-planner': this.generateCampaignResponse(userInput, context),
+        'video-generator-script': this.generateVideoScriptResponse(userInput, context),
+        'automation-specialist': this.generateAutomationResponse(userInput, context)
+      };
+      return agentResponses[agent.id] || 'Agent response not available';
+    }
+  }
 
-    const agentResponses: { [key: string]: string } = {
-      'market-analyst': this.generateMarketAnalystResponse(userInput, context),
-      'business-planner': this.generateBusinessPlannerResponse(userInput, context),
-      'insights-agent': this.generateInsightsResponse(userInput, context),
-      'brand-builder': this.generateBrandBuilderResponse(userInput, context),
-      'design-agent': this.generateDesignResponse(userInput, context),
-      'video-generator-art': this.generateVideoArtResponse(userInput, context),
-      'caption-creator': this.generateCaptionResponse(userInput, context),
-      'campaign-planner': this.generateCampaignResponse(userInput, context),
-      'video-generator-script': this.generateVideoScriptResponse(userInput, context),
-      'automation-specialist': this.generateAutomationResponse(userInput, context)
-    };
+  /**
+   * Call Claude API with agent system prompt and context
+   * This is the REAL AI integration - uses Claude model with proper prompting
+   */
+  private async callClaudeAPI(
+    agent: Agent,
+    userInput: string,
+    context: MasterContext
+  ): Promise<string> {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const model = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
 
-    return agentResponses[agent.id] || 'Agent response not available';
+    if (!apiKey) {
+      throw new Error('ANTHROPIC_API_KEY not found in environment variables');
+    }
+
+    // Build context message with Brand Knowledge Template (3-bucket style)
+    const contextInfo = this.buildContextMessage(agent, context);
+
+    // Construct messages for Claude API
+    const messages = [
+      {
+        role: 'user',
+        content: `${contextInfo}\n\nUser Request: ${userInput}`
+      }
+    ];
+
+    // Call Claude API via fetch
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1024,
+        system: agent.systemPrompt,
+        messages
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Claude API error (${response.status}): ${error}`);
+    }
+
+    const data = await response.json() as any;
+    const textBlock = data.content?.find((block: any) => block.type === 'text');
+    return textBlock?.text || 'No response from Claude';
+  }
+
+  /**
+   * Build context message with Brand Knowledge Template
+   * Sends relevant data based on agent cluster (Smart Lazy distribution)
+   */
+  private buildContextMessage(agent: Agent, context: MasterContext): string {
+    const uspArray = Array.isArray(context.coreUSP) ? context.coreUSP : [context.coreUSP];
+
+    let contextMsg = `# Brand Context for ${context.brandNameTh}
+
+## Basic Info
+- Brand (TH): ${context.brandNameTh}
+- Brand (EN): ${context.brandNameEn}
+- Industry: ${context.industry}
+- Core USP: ${uspArray.join(', ')}`;
+
+    // Add cluster-specific context
+    if (agent.cluster === 'strategist') {
+      contextMsg += `\n## Strategist Data
+- Business Model: ${context.businessModel || 'B2C'}
+- Target Audience: ${context.targetAudience}
+- Tone of Voice: ${context.toneOfVoice}`;
+    } else if (agent.cluster === 'studio') {
+      contextMsg += `\n## Studio Data
+- Primary Color: ${context.visualStyle?.primaryColor}
+- Mood & Tone: ${context.visualStyle?.moodKeywords?.join(', ')}
+- Video Style: ${context.visualStyle?.videoStyle || 'Not specified'}`;
+    } else if (agent.cluster === 'agency') {
+      contextMsg += `\n## Agency Data
+- Target Persona: ${context.targetPersona || context.targetAudience}
+- Tone of Voice: ${context.toneOfVoice}
+- Brand Hashtags: ${context.brandHashtags?.join(', ') || 'Not specified'}`;
+    }
+
+    return contextMsg;
   }
 
   /**
