@@ -223,14 +223,13 @@ class AIService {
     dbContext?: any
   ): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    const model = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
+    const model = process.env.CLAUDE_MODEL || 'claude-sonnet-4-6';
 
     if (!apiKey) {
       throw new Error('ANTHROPIC_API_KEY not found in environment variables');
     }
 
     // Build context message with Brand Knowledge Template (3-bucket style)
-    // ✨ NEW: Include database context for enriched data
     const contextInfo = this.buildContextMessage(agent, context, dbContext);
 
     // Construct messages for Claude API
@@ -251,7 +250,7 @@ class AIService {
       },
       body: JSON.stringify({
         model,
-        max_tokens: 1024,
+        max_tokens: 4096,
         system: agent.systemPrompt,
         messages
       })
@@ -275,52 +274,115 @@ class AIService {
   private buildContextMessage(agent: Agent, context: MasterContext, dbContext?: any): string {
     const uspArray = Array.isArray(context.coreUSP) ? context.coreUSP : [context.coreUSP];
 
-    let contextMsg = `# Brand Context for ${context.brandNameTh}
+    // ── SHARED BASE (all agents) ──────────────────────────────
+    let contextMsg = `# BRAND DATA: ${context.brandNameTh} (${context.brandNameEn})
 
-## Basic Info
-- Brand (TH): ${context.brandNameTh}
-- Brand (EN): ${context.brandNameEn}
+## BRAND FOUNDATION
 - Industry: ${context.industry}
-- Core USP: ${uspArray.join(', ')}`;
-
-    // Add cluster-specific context from MasterContext
-    if (agent.cluster === 'strategy') {
-      contextMsg += `\n## Strategy Data
 - Business Model: ${context.businessModel || 'B2C'}
+- Core USP:
+${uspArray.map((u, i) => `  ${i + 1}. ${u}`).join('\n')}`;
+
+    // ── STRATEGY CLUSTER ─────────────────────────────────────
+    if (agent.cluster === 'strategy') {
+      contextMsg += `
+
+## STRATEGY DATA (for analysis)
 - Target Audience: ${context.targetAudience}
+- Target Persona: ${context.targetPersona || context.targetAudience}
 - Tone of Voice: ${context.toneOfVoice}`;
 
-      // ✨ Enrich with database context
-      if (dbContext?.competitors && dbContext.competitors.length > 0) {
-        contextMsg += `\n- Competitors: ${dbContext.competitors.join(', ')}`;
+      if (context.competitors && context.competitors.length > 0) {
+        contextMsg += `\n- Known Competitors: ${context.competitors.join(', ')}`;
+      } else if (dbContext?.competitors?.length > 0) {
+        contextMsg += `\n- Known Competitors: ${dbContext.competitors.join(', ')}`;
       }
-    } else if (agent.cluster === 'creative') {
-      contextMsg += `\n## Creative Data
-- Primary Color: ${context.visualStyle?.primaryColor}
-- Mood & Tone: ${context.visualStyle?.moodKeywords?.join(', ')}
-- Video Style: ${context.visualStyle?.videoStyle || 'Not specified'}`;
 
-      // ✨ Enrich with database context
-      if (dbContext?.forbiddenElements && dbContext.forbiddenElements.length > 0) {
-        contextMsg += `\n- Forbidden Elements: ${dbContext.forbiddenElements.join(', ')}`;
+      if (context.painPoints && context.painPoints.length > 0) {
+        contextMsg += `\n- Customer Pain Points:\n${context.painPoints.map((p: string) => `  • ${p}`).join('\n')}`;
+      } else if (dbContext?.painPoints?.length > 0) {
+        contextMsg += `\n- Customer Pain Points:\n${dbContext.painPoints.map((p: string) => `  • ${p}`).join('\n')}`;
       }
-      if (dbContext?.secondaryColors && dbContext.secondaryColors.length > 0) {
-        contextMsg += `\n- Secondary Colors: ${dbContext.secondaryColors.join(', ')}`;
-      }
-    } else if (agent.cluster === 'growth') {
-      contextMsg += `\n## Growth Data
-- Target Persona: ${context.targetPersona || context.targetAudience}
-- Tone of Voice: ${context.toneOfVoice}
-- Brand Hashtags: ${context.brandHashtags?.join(', ') || 'Not specified'}`;
 
-      // ✨ Enrich with database context
-      if (dbContext?.forbiddenWords && dbContext.forbiddenWords.length > 0) {
-        contextMsg += `\n- Forbidden Words: ${dbContext.forbiddenWords.join(', ')}`;
-      }
-      if (dbContext?.painPoints && dbContext.painPoints.length > 0) {
-        contextMsg += `\n- Customer Pain Points: ${dbContext.painPoints.join(', ')}`;
+      if (context.taxId || context.companyAddress) {
+        contextMsg += `\n- Business Registration: Tax ID ${context.taxId || 'N/A'}`;
       }
     }
+
+    // ── CREATIVE CLUSTER ─────────────────────────────────────
+    else if (agent.cluster === 'creative') {
+      const vc = context.visualStyle || {};
+      const fonts = Array.isArray(vc.fontFamily) ? vc.fontFamily : [vc.fontFamily].filter(Boolean);
+      const moods = vc.moodKeywords || dbContext?.moodKeywords || [];
+      const secondaryColors = vc.secondaryColors || dbContext?.secondaryColors || [];
+      const forbidden = vc.forbiddenElements || dbContext?.forbiddenElements || [];
+
+      contextMsg += `
+
+## VISUAL IDENTITY DATA
+- Primary Color: ${vc.primaryColor || 'Not specified'}
+- Secondary Colors: ${secondaryColors.length > 0 ? secondaryColors.join(', ') : 'Not specified'}
+- Typography: ${fonts.length > 0 ? fonts.join(' / ') : 'Not specified'}
+- Mood Keywords: ${moods.length > 0 ? moods.join(', ') : 'Not specified'}
+- Video Style: ${vc.videoStyle || 'Not specified'}
+- Logo URL: ${vc.logoUrl || context.logoUrl || 'Not provided'}`;
+
+      if (forbidden.length > 0) {
+        contextMsg += `\n- Forbidden Visual Elements: ${forbidden.join(', ')}`;
+      }
+
+      contextMsg += `
+
+## BRAND PERSONALITY (for visual translation)
+- Tone of Voice: ${context.toneOfVoice}
+- Target Audience: ${context.targetAudience}
+- Core USP (visual emphasis): ${uspArray[0]}`;
+    }
+
+    // ── GROWTH CLUSTER ────────────────────────────────────────
+    else if (agent.cluster === 'growth') {
+      const forbidden = context.forbiddenWords || dbContext?.forbiddenWords || [];
+      const painPoints = context.painPoints || dbContext?.painPoints || [];
+      const hashtags = context.brandHashtags || dbContext?.brandHashtags || [];
+      const competitors = context.competitors || dbContext?.competitors || [];
+
+      contextMsg += `
+
+## GROWTH & COMMUNICATION DATA
+- Target Persona: ${context.targetPersona || context.targetAudience}
+- Tone of Voice: ${context.toneOfVoice}
+- Multilingual Level: ${context.multilingualLevel || 'TH-primary'}`;
+
+      if (painPoints.length > 0) {
+        contextMsg += `\n- Customer Pain Points:\n${painPoints.map((p: string) => `  • ${p}`).join('\n')}`;
+      }
+
+      if (forbidden.length > 0) {
+        contextMsg += `\n- Forbidden Words (NEVER use): ${forbidden.join(', ')}`;
+      }
+
+      if (hashtags.length > 0) {
+        contextMsg += `\n- Brand Hashtags: ${hashtags.join(' ')}`;
+      }
+
+      if (competitors.length > 0) {
+        contextMsg += `\n- Competitors (for positioning): ${competitors.join(', ')}`;
+      }
+
+      contextMsg += `
+
+## CONTENT DIRECTION
+- Primary USP for content: ${uspArray[0]}
+- Brand Voice: ${context.toneOfVoice}
+- Primary Color (for visual consistency): ${context.visualStyle?.primaryColor || 'Not specified'}
+- Mood: ${(context.visualStyle?.moodKeywords || []).join(', ') || 'Not specified'}`;
+    }
+
+    contextMsg += `
+
+---
+IMPORTANT: Base ALL responses on the brand data above. Do NOT invent data not provided.
+Respond in Thai (ภาษาไทย) unless the user writes in English.`;
 
     return contextMsg;
   }
