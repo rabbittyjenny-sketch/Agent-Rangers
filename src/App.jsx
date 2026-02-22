@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import './App.css';
 
-// Import new pages
-import { HomePage, Dashboard, AgentChat, TaskMonitor, BrandManager } from './pages';
+// Lazy load pages for better performance
+const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
+const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const AgentChat = lazy(() => import('./pages/AgentChat').then(m => ({ default: m.AgentChat })));
+const TaskMonitor = lazy(() => import('./pages/TaskMonitor').then(m => ({ default: m.TaskMonitor })));
+const BrandManager = lazy(() => import('./pages/BrandManager').then(m => ({ default: m.BrandManager })));
 
-// Import legacy components (kept for backward compatibility)
+// Legacy components (kept for backward compatibility)
 import Hero from './components/Hero';
 import AgentsGrid from './components/AgentsGrid';
 import Onboarding from './components/Onboarding';
@@ -179,6 +183,15 @@ const App = () => {
     }
   };
 
+  // Loading spinner component
+  const LoadingSpinner = () => (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin">
+        <div className="w-12 h-12 border-4 border-[#5E9BEB] border-t-transparent rounded-full"></div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="app-wrapper">
       {/* Global Header */}
@@ -238,7 +251,11 @@ const App = () => {
       </header>
 
       {/* Main Content */}
-      <main className="app-main">{renderView()}</main>
+      <main className="app-main">
+        <Suspense fallback={<LoadingSpinner />}>
+          {renderView()}
+        </Suspense>
+      </main>
 
       {/* Footer */}
       <footer className="app-footer">

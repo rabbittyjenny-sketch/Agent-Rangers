@@ -19,6 +19,26 @@ export default defineConfig({
                 main: resolve(__dirname, 'index.html'),
                 result: resolve(__dirname, 'result.html'),
             },
+            output: {
+                manualChunks: {
+                    'vendor': ['react', 'react-dom', 'framer-motion'],
+                    'ui': [
+                        './src/components/design-system',
+                        './src/pages',
+                    ],
+                    'services': [
+                        './src/services/aiService',
+                        './src/services/orchestratorEngine',
+                        './src/services/databaseService',
+                    ],
+                    'data': [
+                        './src/data/agents',
+                        './src/data/agent-routing',
+                        './src/data/intelligence',
+                    ],
+                }
+            }
         },
+        chunkSizeWarningLimit: 600,
     },
 })
