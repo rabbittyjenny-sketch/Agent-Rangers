@@ -199,81 +199,15 @@ const App = () => {
   );
 
   return (
-    <div className="app-wrapper">
-      {/* Global Header */}
-      <header className="app-header">
-        <div className="header-content">
-          <button
-            className="brand-logo"
-            onClick={() => setCurrentView('home')}
-            style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
-          >
-            <img src="/ideas365-logo.png" alt="iDEAS365" style={{ height: '40px' }} />
-          </button>
-
-          <nav className="header-nav">
-            {systemReady && masterContext && (
-              <>
-                <div className="context-badge">
-                  <span className="badge-label">Brand:</span>
-                  <span className="badge-value">{masterContext.brandNameTh}</span>
-                </div>
-
-                <div className="header-nav-buttons">
-                  <button
-                    className="neo-btn"
-                    onClick={() => setCurrentView('tasks')}
-                    style={{ fontSize: '12px', padding: '8px 16px' }}
-                  >
-                    📊 Tasks
-                  </button>
-                  <button
-                    className="neo-btn"
-                    onClick={() => setCurrentView('brands')}
-                    style={{ fontSize: '12px', padding: '8px 16px' }}
-                  >
-                    🏢 Brands
-                  </button>
-                </div>
-              </>
-            )}
-
-            {!masterContext && (
-              <button
-                className="neo-btn"
-                style={{
-                  fontSize: '12px',
-                  padding: '8px 16px',
-                  background: '#FF1493',
-                  color: 'white'
-                }}
-                onClick={handleStartOnboarding}
-              >
-                + Setup Brand
-              </button>
-            )}
-          </nav>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="app-main">
+    <div style={{ background:'#0D1117', minHeight:'100vh' }}>
+      {/* Main Content — no global header, each page handles its own nav */}
+      <main style={{ margin:0, padding:0 }}>
         <Suspense fallback={<LoadingSpinner />}>
           {renderView()}
         </Suspense>
       </main>
 
-      {/* Footer */}
-      <footer className="app-footer">
-        <p>© 2025 Social Factory x iDEAS365 | Powered by Generative AI</p>
-        <p>
-          {systemReady && masterContext
-            ? `✅ System Ready | Brand: ${masterContext.brandNameTh}`
-            : '⚙️ Complete Onboarding to unlock all features'}
-        </p>
-      </footer>
-
-      {/* Styles are in App.css */}
+      {/* Footer removed — each page handles its own footer */}
     </div>
   );
 };
