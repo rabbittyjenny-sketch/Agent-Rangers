@@ -227,12 +227,12 @@ export const consistencyRules = {
 export const agentConstraints: {
   [agentId: string]: (output: any) => CheckResult;
 } = {
-  'market-analyst': (output) => {
+  'market-analyzer': (output) => {
     const issues: string[] = [];
 
     if (!output || typeof output !== 'object') {
       return {
-        rule: 'MARKET_ANALYST_CONSTRAINTS',
+        rule: 'MARKET_ANALYZER_CONSTRAINTS',
         passed: false,
         severity: 'critical',
         message: 'Invalid output'
@@ -244,81 +244,97 @@ export const agentConstraints: {
     if (!output.competitors) issues.push('ต้องมี Competitor Analysis');
 
     return {
-      rule: 'MARKET_ANALYST_CONSTRAINTS',
+      rule: 'MARKET_ANALYZER_CONSTRAINTS',
       passed: issues.length === 0,
       severity: issues.length > 0 ? 'info' : 'info',
       message: issues.length === 0 ? 'ครบ constraints' : issues.join('; ')
     };
   },
 
-  'business-planner': (output) => {
+  'positioning-strategist': (output) => {
     const issues: string[] = [];
 
-    if (!output.costBreakdown) issues.push('ต้องมี Cost Breakdown');
-    if (!output.pricing) issues.push('ต้องมี Pricing Strategy');
-    if (!output.roi) issues.push('ต้องมี ROI Projection');
-    if (!output.tradeoffs) issues.push('ต้องมี Trade-offs Analysis');
-
-    // ตรวจ Math
-    if (output.costBreakdown && output.pricing) {
-      const totalCost = Object.values(output.costBreakdown as any).reduce(
-        (a: any, b: any) => (typeof a === 'number' ? a : 0) + (typeof b === 'number' ? b : 0),
-        0
-      );
-      const markup = output.pricing.markupPercent;
-
-      if (markup && markup < 20) {
-        issues.push('Markup ต่ำเกินไป (ต้องอย่างน้อย 20%)');
-      }
-    }
+    if (!output.positioningStatement) issues.push('ต้องมี Positioning Statement');
+    if (!output.valueProp) issues.push('ต้องมี Value Proposition');
+    if (!output.messagingPillars) issues.push('ต้องมี Messaging Pillars');
 
     return {
-      rule: 'BUSINESS_PLANNER_CONSTRAINTS',
+      rule: 'POSITIONING_STRATEGIST_CONSTRAINTS',
       passed: issues.length === 0,
       severity: issues.length > 0 ? 'warning' : 'info',
       message: issues.length === 0 ? 'ครบ constraints' : issues.join('; ')
     };
   },
 
-  'insights-agent': (output) => {
+  'customer-insight-specialist': (output) => {
     const issues: string[] = [];
 
-    if (!output.kpi) issues.push('ต้องมี KPI Tracking');
-    if (!output.metrics) issues.push('ต้องมี Performance Metrics');
-    if (!output.dataSource) issues.push('ต้องระบุ Data Source');
+    if (!output.journeyMap) issues.push('ต้องมี Journey Map');
+    if (!output.personas) issues.push('ต้องมี Personas');
+    if (!output.painPoints) issues.push('ต้องมี Pain Points');
 
     return {
-      rule: 'INSIGHTS_AGENT_CONSTRAINTS',
+      rule: 'CUSTOMER_INSIGHT_SPECIALIST_CONSTRAINTS',
       passed: issues.length === 0,
       severity: issues.length > 0 ? 'warning' : 'info',
       message: issues.length === 0 ? 'ครบ constraints' : issues.join('; ')
     };
   },
 
-  'brand-builder': (output) => {
+  'visual-strategist': (output) => {
     const issues: string[] = [];
 
-    if (!output.brandPersonality) issues.push('ต้องมี Brand Personality');
-    if (!output.toneOfVoice) issues.push('ต้องมี Tone of Voice');
-    if (!output.valueProposition) issues.push('ต้องมี Value Proposition');
+    if (!output.colorPalette) issues.push('ต้องมี Color Palette');
+    if (!output.typography) issues.push('ต้องมี Typography');
+    if (!output.visualSystem) issues.push('ต้องมี Visual System');
 
     return {
-      rule: 'BRAND_BUILDER_CONSTRAINTS',
+      rule: 'VISUAL_STRATEGIST_CONSTRAINTS',
       passed: issues.length === 0,
       severity: issues.length > 0 ? 'warning' : 'info',
       message: issues.length === 0 ? 'ครบ constraints' : issues.join('; ')
     };
   },
 
-  'caption-creator': (output) => {
+  'brand-voice-architect': (output) => {
+    const issues: string[] = [];
+
+    if (!output.toneMatrix) issues.push('ต้องมี Tone Matrix');
+    if (!output.voicePersonality) issues.push('ต้องมี Voice Personality');
+    if (!output.communicationRules) issues.push('ต้องมี Communication Rules');
+
+    return {
+      rule: 'BRAND_VOICE_ARCHITECT_CONSTRAINTS',
+      passed: issues.length === 0,
+      severity: issues.length > 0 ? 'warning' : 'info',
+      message: issues.length === 0 ? 'ครบ constraints' : issues.join('; ')
+    };
+  },
+
+  'narrative-designer': (output) => {
+    const issues: string[] = [];
+
+    if (!output.storyArc) issues.push('ต้องมี Story Arc');
+    if (!output.heroJourney) issues.push('ต้องมี Hero Journey');
+    if (!output.narrativePatterns) issues.push('ต้องมี Narrative Patterns');
+
+    return {
+      rule: 'NARRATIVE_DESIGNER_CONSTRAINTS',
+      passed: issues.length === 0,
+      severity: issues.length > 0 ? 'warning' : 'info',
+      message: issues.length === 0 ? 'ครบ constraints' : issues.join('; ')
+    };
+  },
+
+  'content-creator': (output) => {
     const issues: string[] = [];
 
     if (!output.styleGuide) issues.push('ต้องมี Style Guide');
     if (!output.templates) issues.push('ต้องมี Templates');
-    if (!output.emotionFramework) issues.push('ต้องมี Emotion Framework');
+    if (!output.hookPatterns) issues.push('ต้องมี Hook Patterns');
 
     return {
-      rule: 'CAPTION_CREATOR_CONSTRAINTS',
+      rule: 'CONTENT_CREATOR_CONSTRAINTS',
       passed: issues.length === 0,
       severity: issues.length > 0 ? 'warning' : 'info',
       message: issues.length === 0 ? 'ครบ constraints' : issues.join('; ')
@@ -339,6 +355,36 @@ export const agentConstraints: {
 
     return {
       rule: 'CAMPAIGN_PLANNER_CONSTRAINTS',
+      passed: issues.length === 0,
+      severity: issues.length > 0 ? 'warning' : 'info',
+      message: issues.length === 0 ? 'ครบ constraints' : issues.join('; ')
+    };
+  },
+
+  'automation-specialist': (output) => {
+    const issues: string[] = [];
+
+    if (!output.workflows) issues.push('ต้องมี Workflows');
+    if (!output.toolIntegration) issues.push('ต้องมี Tool Integration');
+    if (!output.triggers) issues.push('ต้องมี Triggers');
+
+    return {
+      rule: 'AUTOMATION_SPECIALIST_CONSTRAINTS',
+      passed: issues.length === 0,
+      severity: issues.length > 0 ? 'warning' : 'info',
+      message: issues.length === 0 ? 'ครบ constraints' : issues.join('; ')
+    };
+  },
+
+  'analytics-master': (output) => {
+    const issues: string[] = [];
+
+    if (!output.kpiHierarchy) issues.push('ต้องมี KPI Hierarchy');
+    if (!output.dashboard) issues.push('ต้องมี Dashboard');
+    if (!output.trackingTemplate) issues.push('ต้องมี Tracking Template');
+
+    return {
+      rule: 'ANALYTICS_MASTER_CONSTRAINTS',
       passed: issues.length === 0,
       severity: issues.length > 0 ? 'warning' : 'info',
       message: issues.length === 0 ? 'ครบ constraints' : issues.join('; ')

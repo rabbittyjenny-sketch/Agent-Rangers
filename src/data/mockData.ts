@@ -19,7 +19,7 @@ export const mockConversations = [
       },
       {
         role: 'agent',
-        agentId: 'market-analyst',
+        agentId: 'market-analyzer',
         agentName: 'Market Analyst',
         content: 'แล้ว! มาวิเคราะห์ SWOT ร้านกาแฟของเรากันนะ...'
       }
@@ -36,7 +36,7 @@ export const mockConversations = [
       },
       {
         role: 'agent',
-        agentId: 'design-agent',
+        agentId: 'visual-strategist',
         agentName: 'Design Agent',
         content: 'มาออกแบบโลโก้ที่สะท้อนบุคลิก Art Coffee Studio...'
       }
@@ -64,7 +64,7 @@ export const mockConversations = [
 // Sample analysis results
 export const mockAnalysisResults = {
   swot_coffee: {
-    agentId: 'market-analyst',
+    agentId: 'market-analyzer',
     analysis: 'SWOT Analysis: Art Coffee Studio',
     strengths: [
       'Premium specialty coffee with unique brewing methods',
@@ -93,7 +93,7 @@ export const mockAnalysisResults = {
   },
 
   pricing_coffee: {
-    agentId: 'business-planner',
+    agentId: 'positioning-strategist',
     analysis: 'Pricing Strategy: Art Coffee Studio',
     recommendations: [
       {
@@ -115,7 +115,7 @@ export const mockAnalysisResults = {
   },
 
   caption_examples: {
-    agentId: 'caption-creator',
+    agentId: 'content-creator',
     examples: [
       {
         style: 'Emotional Hook',
@@ -245,13 +245,13 @@ export const routingTestCases = [
   {
     input: 'วิเคราะห์ SWOT ร้านกาแฟ',
     expectedCluster: 'strategy',
-    expectedAgent: 'market-analyst',
+    expectedAgent: 'market-analyzer',
     reason: 'Contains SWOT keyword - Market Analyst'
   },
   {
     input: 'ออกแบบโลโก้ใหม่สำหรับแบรนด์',
     expectedCluster: 'creative',
-    expectedAgent: 'design-agent',
+    expectedAgent: 'visual-strategist',
     reason: 'Contains design/logo keyword - Design Agent'
   },
   {
@@ -269,7 +269,7 @@ export const routingTestCases = [
   {
     input: 'Color Palette สำหรับแบรนด์อาหาร',
     expectedCluster: 'creative',
-    expectedAgent: 'design-agent',
+    expectedAgent: 'visual-strategist',
     reason: 'Contains color/design keyword - Design Agent'
   },
   {

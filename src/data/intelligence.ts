@@ -572,45 +572,23 @@ export const taskSpecificPrompts: TaskSpecificPrompt[] = [
     ]
   },
   {
-    agentId: 'video-generator-art',
+    agentId: 'content-creator',
     trigger: 'first_use',
     questions: [
       {
-        id: 'videoFormat',
-        question: 'What video format do you need?',
-        questionTh: 'ต้องการวิดีโอรูปแบบไหน?',
+        id: 'contentMode',
+        question: 'What content mode do you need?',
+        questionTh: 'ต้องการคอนเทนต์รูปแบบไหน?',
         type: 'select',
-        options: ['Short Clip (15-30s)', 'Medium (30-60s)', 'Long Form (1-5min)', 'Live Stream Ready'],
+        options: ['Caption Strategy (Social Posts)', 'Video Script (TikTok/Reels)', 'Both (Dual-Mode)'],
         required: true
       },
       {
-        id: 'videoPlatform',
-        question: 'Primary platform for this video?',
-        questionTh: 'แพลตฟอร์มหลักสำหรับวิดีโอนี้?',
+        id: 'contentPlatform',
+        question: 'Primary platform?',
+        questionTh: 'แพลตฟอร์มหลัก?',
         type: 'select',
-        options: ['TikTok (9:16)', 'Instagram Reels (9:16)', 'YouTube (16:9)', 'Facebook (1:1)'],
-        required: true
-      }
-    ]
-  },
-  {
-    agentId: 'video-generator-script',
-    trigger: 'first_use',
-    questions: [
-      {
-        id: 'scriptType',
-        question: 'What type of script do you need?',
-        questionTh: 'ต้องการสคริปต์แบบไหน?',
-        type: 'select',
-        options: ['Product Showcase', 'Tutorial/How-to', 'Story/Testimonial', 'Live Stream Script', 'Ad/Commercial'],
-        required: true
-      },
-      {
-        id: 'scriptDuration',
-        question: 'Target duration?',
-        questionTh: 'ความยาวเป้าหมาย?',
-        type: 'select',
-        options: ['15 seconds', '30 seconds', '60 seconds', '3-5 minutes', '30-60 minutes (Live)'],
+        options: ['TikTok', 'Instagram', 'Facebook', 'YouTube', 'Multiple'],
         required: true
       }
     ]
