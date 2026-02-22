@@ -223,7 +223,7 @@ class AIService {
     dbContext?: any
   ): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    const model = process.env.CLAUDE_MODEL || 'claude-sonnet-4-6';
+    const model = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
 
     if (!apiKey) {
       throw new Error('ANTHROPIC_API_KEY not found in environment variables');
