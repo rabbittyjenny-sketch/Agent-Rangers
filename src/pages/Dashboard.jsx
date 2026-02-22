@@ -1,319 +1,174 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Search, MessageSquare, Zap } from 'lucide-react';
+import { ArrowLeft, Search, MessageSquare, ChevronDown } from 'lucide-react';
 import { getAllAgents } from '../data/agents';
 
-export const Dashboard = ({ clusterId, onBack, onSelectAgent, masterContext }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCluster, setActiveCluster] = useState(clusterId || 'all');
+const CLUSTER_CFG = {
+  strategy: { label:'Strategy', labelTh:'วางกลยุทธ์', color:'#FF6B6B' },
+  creative:  { label:'Creative', labelTh:'สร้างสรรค์', color:'#A78BFA' },
+  growth:    { label:'Growth',   labelTh:'ขับเคลื่อน', color:'#34D399' },
+};
 
-  const allAgents = getAllAgents();
-
-  const clusterConfig = {
-    strategy: {
-      label: 'Strategy',
-      labelTh: 'วางกลยุทธ์',
-      color: '#FF6B6B',
-      bg: '#FFF0F0',
-      border: '#FF6B6B',
-      description: 'วิเคราะห์ตลาด กำหนดตำแหน่งแบรนด์ เข้าใจลูกค้า',
-    },
-    creative: {
-      label: 'Creative',
-      labelTh: 'สร้างสรรค์',
-      color: '#FFB6C1',
-      bg: '#FFF5F7',
-      border: '#FF8FAB',
-      description: 'ออกแบบ Visual System เสียง Brand เล่าเรื่อง',
-    },
-    growth: {
-      label: 'Growth',
-      labelTh: 'ขับเคลื่อนการเติบโต',
-      color: '#00CED1',
-      bg: '#F0FFFF',
-      border: '#00CED1',
-      description: 'สร้างคอนเทนต์ วางแผน Campaign วัดผล',
-    },
-  };
-
-  const clusters = ['all', 'strategy', 'creative', 'growth'];
-
-  const filteredAgents = allAgents.filter((agent) => {
-    const matchesCluster = activeCluster === 'all' || agent.cluster === activeCluster;
-    const q = searchQuery.toLowerCase();
-    const matchesSearch =
-      !q ||
-      agent.name.toLowerCase().includes(q) ||
-      agent.description.toLowerCase().includes(q) ||
-      agent.keywords.some((k) => k.toLowerCase().includes(q));
-    return matchesCluster && matchesSearch;
-  });
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.06 } },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 16 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
-  };
+const AgentCard = ({ agent, index, onSelect }) => {
+  const [open, setOpen] = useState(false);
+  const cfg = CLUSTER_CFG[agent.cluster] || { color:'#5E9BEB', label:'Agent' };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fafafa', padding: '32px 20px' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}>
-          <button
-            onClick={onBack}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: '#5E9BEB', fontWeight: 700, fontSize: 14, marginBottom: 24,
-            }}
-          >
-            <ArrowLeft size={18} /> กลับ
-          </button>
+    <motion.div initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }}
+                transition={{ delay:0.04*index, duration:0.4 }}
+                className="rounded-2xl border border-white/[0.07] overflow-hidden"
+                style={{ background:'rgba(255,255,255,0.025)' }}>
 
-          <div style={{ marginBottom: 8 }}>
-            <h1 style={{ fontSize: 28, fontWeight: 800, color: '#111', marginBottom: 4 }}>
-              🤖 10-Agent Ecosystem
-            </h1>
-            <p style={{ color: '#666', fontSize: 14 }}>
-              {masterContext
-                ? `Brand: ${masterContext.brandNameTh} · เลือก Agent ที่ต้องการ`
-                : 'เลือก Agent ที่ต้องการพูดคุย'}
-            </p>
+      {/* Header */}
+      <button className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/[0.03] transition-colors"
+              onClick={() => setOpen(v=>!v)}>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
+               style={{ background:cfg.color+'20' }}>
+            {agent.emoji || '🤖'}
+          </div>
+          <span className="font-bold text-white text-sm truncate">{agent.name}</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-white/30 flex-shrink-0 ml-2 transition-transform duration-200 ${open?'rotate-180':''}`}/>
+      </button>
+
+      {/* Collapsed hint */}
+      {!open && (
+        <div className="px-5 pb-4 border-t border-white/[0.04]">
+          <p className="text-white/35 text-xs leading-relaxed line-clamp-2 mt-2">{agent.description}</p>
+          <p className="text-white/20 text-xs mt-3 text-center tracking-wide">Click for details</p>
+        </div>
+      )}
+
+      {/* Expanded body */}
+      {open && (
+        <div className="px-5 pb-5 border-t border-white/[0.06]">
+          <p className="text-white/45 text-sm leading-relaxed mt-4 mb-4">{agent.description}</p>
+
+          {/* Meta */}
+          <div className="space-y-2 mb-4">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-white/25">Cluster:</span>
+              <span className="px-2 py-0.5 rounded-full text-xs font-mono"
+                    style={{ background:cfg.color+'18', color:cfg.color }}>
+                {cfg.label}
+              </span>
+            </div>
+            {agent.keywords?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {agent.keywords.slice(0,5).map(k=>(
+                  <span key={k} className="text-xs bg-white/5 border border-white/[0.07] px-2 py-0.5 rounded-full text-white/35">
+                    {k}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* CTA */}
+          <button onClick={() => onSelect(agent.id)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                  style={{ background:cfg.color+'18', color:cfg.color, border:`1px solid ${cfg.color}30` }}>
+            <MessageSquare className="w-4 h-4"/>
+            Chat with Agent
+          </button>
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
+export const Dashboard = ({ clusterId, onBack, onSelectAgent, masterContext }) => {
+  const [search, setSearch] = useState('');
+  const [activeCluster, setActiveCluster] = useState(clusterId || 'all');
+  const allAgents = getAllAgents();
+
+  const filtered = allAgents.filter(a => {
+    const mc = activeCluster === 'all' || a.cluster === activeCluster;
+    const q = search.toLowerCase();
+    const ms = !q || a.name.toLowerCase().includes(q) ||
+      a.description.toLowerCase().includes(q) ||
+      (a.keywords||[]).some(k=>k.toLowerCase().includes(q));
+    return mc && ms;
+  });
+
+  const tabs = ['all','strategy','creative','growth'];
+
+  return (
+    <div className="min-h-screen bg-[#0D1117] text-white">
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#5E9BEB]/4 rounded-full blur-[120px]"/>
+      </div>
+
+      <div className="relative z-10 max-w-5xl mx-auto px-5 sm:px-8 py-8">
+
+        {/* Top nav */}
+        <motion.div initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }}
+                    className="flex items-center gap-4 mb-8 border-b border-white/[0.06] pb-5">
+          <button onClick={onBack}
+                  className="flex items-center gap-1.5 text-white/40 hover:text-white text-sm transition-colors">
+            <ArrowLeft className="w-4 h-4"/> Back
+          </button>
+          <div className="h-4 w-px bg-white/10"/>
+          <span className="font-bold text-white text-sm">Agents</span>
+          {masterContext?.brandNameTh && (
+            <div className="ml-auto flex items-center gap-1.5 text-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-pulse"/>
+              <span className="text-[#34D399] font-medium">{masterContext.brandNameTh}</span>
+            </div>
+          )}
+        </motion.div>
+
+        {/* Title + search */}
+        <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }}
+                    transition={{ delay:0.1 }}
+                    className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-white">Discovered Agents</h2>
+            <p className="text-white/30 text-xs mt-1">{filtered.length} agents พร้อมใช้งาน</p>
+          </div>
+          <div className="bg-white/5 border border-white/[0.07] rounded-xl px-4 py-2.5 flex items-center gap-2 w-full sm:w-52">
+            <Search className="w-4 h-4 text-white/25 flex-shrink-0"/>
+            <input value={search} onChange={e=>setSearch(e.target.value)}
+                   placeholder="Search agents..."
+                   className="bg-transparent text-sm text-white placeholder-white/25 outline-none w-full"/>
           </div>
         </motion.div>
 
-        {/* Search */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          style={{ position: 'relative', marginBottom: 20, maxWidth: 400 }}
-        >
-          <Search
-            size={16}
-            style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#999' }}
-          />
-          <input
-            type="text"
-            placeholder="ค้นหา agent หรือความสามารถ..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%', padding: '10px 14px 10px 40px',
-              border: '1.5px solid #E5E7EB', borderRadius: 8,
-              fontSize: 14, outline: 'none', background: 'white',
-              boxSizing: 'border-box',
-            }}
-          />
-        </motion.div>
-
-        {/* Cluster Tabs */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          style={{ display: 'flex', gap: 8, marginBottom: 32, flexWrap: 'wrap' }}
-        >
-          {clusters.map((c) => {
-            const cfg = clusterConfig[c];
-            const isActive = activeCluster === c;
+        {/* Cluster tabs */}
+        <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.15 }}
+                    className="flex items-center gap-2 mb-7 overflow-x-auto pb-1 scrollbar-hide">
+          {tabs.map(t => {
+            const cfg = CLUSTER_CFG[t];
+            const active = activeCluster === t;
             return (
-              <button
-                key={c}
-                onClick={() => setActiveCluster(c)}
-                style={{
-                  padding: '8px 18px',
-                  borderRadius: 8,
-                  border: `1.5px solid ${isActive ? (cfg?.color || '#5E9BEB') : '#E5E7EB'}`,
-                  background: isActive ? (cfg?.bg || '#f0f0f0') : 'white',
-                  color: isActive ? (cfg?.color || '#333') : '#666',
-                  fontWeight: isActive ? 700 : 500,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  transition: 'all 0.2s',
-                  boxShadow: isActive ? `0 2px 8px ${cfg?.color || '#5E9BEB'}22` : 'none',
-                }}
-              >
-                {c === 'all' ? '🌐 ทั้งหมด' : `${cfg.label} — ${cfg.labelTh}`}
+              <button key={t} onClick={()=>setActiveCluster(t)}
+                      className="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-medium transition-all"
+                      style={active
+                        ? { background:cfg?cfg.color+'20':'rgba(94,155,235,0.18)',
+                            color:cfg?cfg.color:'#5E9BEB',
+                            border:`1px solid ${cfg?cfg.color+'35':'rgba(94,155,235,0.35)'}` }
+                        : { background:'rgba(255,255,255,0.04)',
+                            color:'rgba(255,255,255,0.35)',
+                            border:'1px solid rgba(255,255,255,0.06)' }}>
+                {t==='all' ? '✦ All' : cfg.labelTh}
               </button>
             );
           })}
         </motion.div>
 
-        {/* Cluster description */}
-        {activeCluster !== 'all' && clusterConfig[activeCluster] && (
-          <motion.p
-            key={activeCluster}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            style={{
-              color: '#555', fontSize: 13, marginBottom: 20,
-              padding: '10px 16px',
-              background: clusterConfig[activeCluster].bg,
-              borderLeft: `4px solid ${clusterConfig[activeCluster].color}`,
-              borderRadius: '0 8px 8px 0',
-            }}
-          >
-            {clusterConfig[activeCluster].description}
-          </motion.p>
-        )}
-
-        {/* Agent count */}
-        <p style={{ color: '#999', fontSize: 12, marginBottom: 16 }}>
-          {filteredAgents.length} agents
-          {searchQuery ? ` ที่ตรงกับ "${searchQuery}"` : ''}
-        </p>
-
-        {/* Agents Grid */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: 20,
-          }}
-        >
-          {filteredAgents.map((agent) => {
-            const cfg = clusterConfig[agent.cluster] || {};
-            return (
-              <motion.div
-                key={agent.id}
-                variants={itemVariants}
-                whileHover={{ y: -4, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
-                onClick={() => onSelectAgent(agent.id)}
-                style={{
-                  background: 'white',
-                  border: '1px solid #F0F0F0',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
-                  borderRadius: 12,
-                  padding: 20,
-                  cursor: 'pointer',
-                  transition: 'all 0.25s',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Cluster stripe */}
-                <div
-                  style={{
-                    position: 'absolute', top: 0, left: 0, right: 0,
-                    height: 4, background: cfg.color || '#ccc',
-                  }}
-                />
-
-                {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-                  <div
-                    style={{
-                      fontSize: 28, lineHeight: 1,
-                      width: 48, height: 48,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: cfg.bg || '#f5f5f5',
-                      borderRadius: 10, flexShrink: 0,
-                    }}
-                  >
-                    {agent.emoji}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 2 }}>
-                      {agent.nameEn}
-                    </h3>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        fontSize: 10, fontWeight: 600,
-                        color: cfg.color || '#666',
-                        background: cfg.bg || '#f5f5f5',
-                        padding: '2px 8px', borderRadius: 4,
-                        textTransform: 'uppercase', letterSpacing: '0.5px',
-                      }}
-                    >
-                      {agent.cluster}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <p style={{ fontSize: 13, color: '#444', lineHeight: 1.5, marginBottom: 12 }}>
-                  {agent.description}
-                </p>
-
-                {/* Specialization */}
-                <div style={{ marginBottom: 12 }}>
-                  <span
-                    style={{
-                      fontSize: 11, color: '#888',
-                      display: 'flex', alignItems: 'center', gap: 4,
-                    }}
-                  >
-                    <Zap size={11} />
-                    {agent.specialization}
-                  </span>
-                </div>
-
-                {/* Output format badge */}
-                <div
-                  style={{
-                    fontSize: 11, fontWeight: 600,
-                    color: cfg.color || '#555',
-                    padding: '4px 10px',
-                    background: cfg.bg || '#f5f5f5',
-                    borderRadius: 6, display: 'inline-block',
-                    marginBottom: 12,
-                  }}
-                >
-                  Output: {agent.outputFormat}
-                </div>
-
-                {/* Capabilities tags */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 14 }}>
-                  {agent.capabilities.slice(0, 3).map((cap) => (
-                    <span
-                      key={cap}
-                      style={{
-                        fontSize: 10, padding: '3px 8px',
-                        background: '#F8F9FC', color: '#666',
-                        borderRadius: 4, border: '1px solid #EBEBEB',
-                      }}
-                    >
-                      {cap}
-                    </span>
-                  ))}
-                  {agent.capabilities.length > 3 && (
-                    <span style={{ fontSize: 10, color: '#aaa', padding: '3px 0' }}>
-                      +{agent.capabilities.length - 3} more
-                    </span>
-                  )}
-                </div>
-
-                {/* CTA */}
-                <button
-                  style={{
-                    width: '100%', padding: '9px 0',
-                    background: cfg.color || '#5E9BEB', color: 'white',
-                    border: 'none', borderRadius: 8,
-                    fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  }}
-                >
-                  <MessageSquare size={14} />
-                  เริ่มสนทนา
-                </button>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-
-        {filteredAgents.length === 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: 'center', padding: 48 }}>
-            <p style={{ color: '#999', fontSize: 16 }}>ไม่พบ agent ที่ตรงกับการค้นหา</p>
-          </motion.div>
-        )}
+        {/* Grid */}
+        {filtered.length > 0
+          ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.map((a,i)=>(
+                <AgentCard key={a.id} agent={a} index={i} onSelect={onSelectAgent}/>
+              ))}
+            </div>
+          : <div className="text-center py-20 text-white/25">
+              <p className="text-4xl mb-3">🔍</p>
+              <p className="text-sm">ไม่พบ Agent "{search}"</p>
+            </div>
+        }
       </div>
     </div>
   );

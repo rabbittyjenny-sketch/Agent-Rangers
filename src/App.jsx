@@ -7,6 +7,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m
 const AgentChat = lazy(() => import('./pages/AgentChat').then(m => ({ default: m.AgentChat })));
 const TaskMonitor = lazy(() => import('./pages/TaskMonitor').then(m => ({ default: m.TaskMonitor })));
 const BrandManager = lazy(() => import('./pages/BrandManager').then(m => ({ default: m.BrandManager })));
+const GuidePage = lazy(() => import('./pages/GuidePage').then(m => ({ default: m.GuidePage })));
 
 // Legacy components (kept for backward compatibility)
 import Hero from './components/Hero';
@@ -104,6 +105,15 @@ const App = () => {
             onSelectCluster={handleSelectCluster}
             onStartOnboarding={handleStartOnboarding}
             isLoggedIn={systemReady && masterContext}
+            onOpenGuide={() => setCurrentView('guide')}
+          />
+        );
+
+      case 'guide':
+        return (
+          <GuidePage
+            onBack={() => setCurrentView('home')}
+            onStartChat={() => setCurrentView('home')}
           />
         );
 

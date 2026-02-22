@@ -1,107 +1,187 @@
+/* ── iDEAS365 x Social Factory — Global CSS ───────────────────────── */
+/* Neumorphism Soft: bg #EFF2F9, shadow #d1d9e6 / #ffffff              */
+/* Font: Sarabun (TH) + Inter (EN) global enforcement                   */
+
 :root {
-  /* Color Palette */
-  --bg-main: #FFF7E1;
-  /* Cream */
-  --c-magenta: #FF00FF;
-  /* Primary Pop */
-  --c-yellow: #FFF000;
-  /* Action Yellow */
-  --c-green: #00FF9D;
-  /* Electric Green */
-  --c-cyan: #00D1FF;
-  /* Cyan Blue */
-  --c-black: #000000;
-  /* Solid Black */
+  /* Neumorphism palette */
+  --neo-bg:       #EFF2F9;
+  --neo-shadow-d: #d1d9e6;
+  --neo-shadow-l: #ffffff;
+  --neo-border:   rgba(255,255,255,0.6);
 
-  /* iDEAS365 Design System Colors */
-  --c-sapphire: #5E9BEB;
-  --c-slate-light: #f3f4f6;
-  --c-slate-dark: #1f2937;
+  /* Text */
+  --text-heading: #334155;   /* slate-700 */
+  --text-body:    #475569;   /* slate-600 */
+  --text-sub:     #94a3b8;   /* slate-400 */
 
-  --font-main: 'Outfit', system-ui, sans-serif;
-  --font-sarabun: 'Sarabun', sans-serif;
+  /* Brand */
+  --sapphire:     #5E9BEB;
+  --sapphire-d:   #4A7BC9;
 
-  --shadow-hard: 4px 4px 0px 0px var(--c-black);
-  --shadow-hard-hover: 6px 6px 0px 0px var(--c-black);
-  --border-black: 2px solid var(--c-black);
-  --radius-main: 12px;
+  /* Semantic */
+  --emerald:      #10b981;
+  --rose:         #f43f5e;
+  --amber:        #f59e0b;
+  --indigo:       #6366f1;
 
-  /* Dark Mode Variables (prepared for future use) */
-  --dm-bg: #1a1a1a;
-  --dm-surface: #2d2d2d;
-  --dm-text: #ffffff;
-  --dm-text-secondary: #b0b0b0;
-  --dm-border: #404040;
+  /* Radius */
+  --r-card:  28px;
+  --r-btn:   999px;
+  --r-chip:  12px;
+
+  /* Shadow tokens */
+  --shadow-neo:      6px 6px 16px var(--neo-shadow-d), -6px -6px 16px var(--neo-shadow-l);
+  --shadow-neo-sm:   3px 3px 8px var(--neo-shadow-d),  -3px -3px 8px var(--neo-shadow-l);
+  --shadow-neo-in:   inset 3px 3px 8px var(--neo-shadow-d), inset -3px -3px 8px var(--neo-shadow-l);
+  --shadow-neo-hover:8px 8px 20px var(--neo-shadow-d), -8px -8px 20px var(--neo-shadow-l);
+
+  /* Font */
+  --font-th: 'Sarabun', sans-serif;
+  --font-en: 'Inter', sans-serif;
 }
+
+/* ── Reset ──────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
-  font-family: var(--font-main);
-  background-color: var(--bg-main);
-  color: var(--c-black);
+  background: var(--neo-bg);
+  font-family: var(--font-th);
+  color: var(--text-body);
   -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
+  line-height: 1.6;
 }
 
-button {
-  cursor: pointer;
-  font-family: inherit;
+/* English text uses Inter */
+.font-en, [lang="en"], code, .mono {
+  font-family: var(--font-en);
 }
 
-/* Utilities for Neo-Brutalist Look */
-.neo-box {
-  background: white;
-  border: var(--border-black);
-  box-shadow: var(--shadow-hard);
-  border-radius: var(--radius-main);
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--neo-bg); }
+::-webkit-scrollbar-thumb { background: var(--neo-shadow-d); border-radius: 99px; }
+
+/* ── Neo Card ───────────────────────────────────────────────── */
+.neo-card {
+  background: var(--neo-bg);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-neo);
+  border: 1px solid var(--neo-border);
+}
+.neo-card-sm {
+  background: var(--neo-bg);
+  border-radius: 20px;
+  box-shadow: var(--shadow-neo-sm);
+  border: 1px solid var(--neo-border);
 }
 
+/* ── Neo Button ─────────────────────────────────────────────── */
 .neo-btn {
-  border: var(--border-black);
-  box-shadow: var(--shadow-hard);
-  border-radius: var(--radius-main);
-  transition: all 0.2s ease;
-  font-weight: 700;
-  text-transform: uppercase;
+  background: var(--neo-bg);
+  border-radius: var(--r-btn);
+  box-shadow: var(--shadow-neo-sm);
+  border: 1px solid var(--neo-border);
+  color: var(--text-body);
+  font-family: var(--font-th);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.neo-btn:hover {
+  box-shadow: var(--shadow-neo-hover);
+  transform: translateY(-1px);
+}
+.neo-btn:active {
+  box-shadow: var(--shadow-neo-in);
+  transform: translateY(0);
 }
 
-.neo-btn:hover:not(:disabled) {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-hard-hover);
+.neo-btn-primary {
+  background: var(--sapphire);
+  color: #fff;
+  box-shadow: 4px 4px 12px rgba(94,155,235,0.35), -2px -2px 8px rgba(255,255,255,0.6);
+}
+.neo-btn-primary:hover {
+  background: var(--sapphire-d);
+  box-shadow: 6px 6px 16px rgba(94,155,235,0.4), -3px -3px 10px rgba(255,255,255,0.5);
 }
 
-.neo-btn:active:not(:disabled) {
-  transform: translate(2px, 2px);
-  box-shadow: 0px 0px 0px 0px var(--c-black);
-}
-
+/* ── Neo Input ──────────────────────────────────────────────── */
 .neo-input {
-  width: 100%;
-  padding: 12px;
-  border: var(--border-black);
-  border-radius: var(--radius-main);
-  font-size: 1rem;
-  background: white;
+  background: var(--neo-bg);
+  border-radius: 16px;
+  box-shadow: var(--shadow-neo-in);
+  border: 1px solid rgba(255,255,255,0.5);
+  color: var(--text-heading);
+  font-family: var(--font-th);
   outline: none;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.18s ease;
+  width: 100%;
+  padding: 12px 16px;
 }
-
 .neo-input:focus {
-  box-shadow: var(--shadow-hard);
+  box-shadow: inset 4px 4px 10px var(--neo-shadow-d), inset -4px -4px 10px var(--neo-shadow-l),
+              0 0 0 2px rgba(94,155,235,0.25);
+}
+.neo-input::placeholder { color: var(--text-sub); }
+
+/* ── App shell ──────────────────────────────────────────────── */
+.app-wrapper { min-height: 100vh; background: var(--neo-bg); }
+
+/* Header */
+.app-header {
+  background: var(--neo-bg);
+  border-bottom: 1px solid rgba(255,255,255,0.5);
+  box-shadow: 0 2px 12px rgba(209,217,230,0.6);
+  position: sticky; top: 0; z-index: 100;
+}
+.header-content {
+  max-width: 1280px; margin: 0 auto;
+  padding: 0 24px; height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.brand-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.brand-name {
+  font-weight: 700; font-size: 18px;
+  color: var(--text-heading); font-family: var(--font-en);
+}
+.header-nav { display: flex; align-items: center; gap: 12px; }
+.context-badge {
+  background: rgba(94,155,235,0.1);
+  border: 1px solid rgba(94,155,235,0.2);
+  border-radius: 999px;
+  padding: 6px 14px; font-size: 12px;
+  color: var(--sapphire); font-family: var(--font-th);
+}
+.context-badge .badge-label { color: var(--text-sub); margin-right: 4px; }
+
+/* Main */
+.app-main { flex: 1; }
+
+/* Footer */
+.app-footer {
+  text-align: center; padding: 20px 24px;
+  font-size: 12px; color: var(--text-sub);
+  border-top: 1px solid rgba(255,255,255,0.5);
+  font-family: var(--font-en);
 }
 
-/* Tailwind CSS Directives */
-@import "tailwindcss";
+/* ── Utility ────────────────────────────────────────────────── */
+.text-heading { color: var(--text-heading); font-weight: 600; }
+.text-body    { color: var(--text-body); }
+.text-sub     { color: var(--text-sub); }
+.text-sapphire{ color: var(--sapphire); }
 
-/* Dark Mode Support (prepared for future use) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --dm-bg: #1a1a1a;
-    --dm-surface: #2d2d2d;
-    --dm-text: #ffffff;
-    --dm-text-secondary: #b0b0b0;
-    --dm-border: #404040;
-  }
+/* Status dot */
+.dot-online  { width:8px; height:8px; border-radius:50%; background:var(--emerald); }
+.dot-warning { width:8px; height:8px; border-radius:50%; background:var(--amber); }
 
-  /* Dark mode styles will be added here */
-}
+/* Cluster color vars */
+.cluster-strategy { --c: #e85d5d; }
+.cluster-creative { --c: #9061e5; }
+.cluster-growth   { --c: #059669; }
