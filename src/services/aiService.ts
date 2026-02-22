@@ -8,6 +8,7 @@ import { Agent, getAgentById } from '../data/agents';
 import { MasterContext } from '../data/intelligence';
 import { orchestratorEngine, RoutingResult, FactCheckResult } from './orchestratorEngine';
 import { databaseService, MessageRecord, AgentLearningRecord } from './databaseService';
+import { databaseContextService, getAgentContext, recordLearning } from './databaseContextService';
 import { automationService } from './automationService';
 
 export interface AIResponse {
@@ -65,9 +66,13 @@ class AIService {
       throw new Error('Master Context not initialized. Please complete onboarding first.');
     }
 
+    // Get brandId from request or use masterContext
+    const brandId = request.brandId || this.masterContext?.brandId || '1';
+    const numericBrandId = typeof brandId === 'string' ? parseInt(brandId) : brandId || 1;
+
     // Save user message to database (non-blocking)
     const userMessage: MessageRecord = {
-      brandId: 1,
+      brandId: numericBrandId,
       role: 'user',
       content: request.userInput,
       attachments: request.attachments?.map(f => ({ name: f.name, type: f.type, size: f.size })),
@@ -99,11 +104,15 @@ class AIService {
       throw new Error('Could not route to appropriate agent');
     }
 
+    // ✨ NEW: Fetch database context for the agent
+    const dbContext = await getAgentContext(numericBrandId, routingResult.agent.cluster);
+
     // Generate response based on agent type
     const agentResponse = await this.generateAgentResponse(
       routingResult.agent,
       request.userInput,
-      this.masterContext
+      this.masterContext,
+      dbContext
     );
 
     // Fact check the response
@@ -123,7 +132,7 @@ class AIService {
 
     // Save agent message to database (non-blocking)
     const agentMessage: MessageRecord = {
-      brandId: 1,
+      brandId: numericBrandId,
       role: 'agent',
       agentId: routingResult.agent.id,
       agentName: routingResult.agent.name,
@@ -139,19 +148,29 @@ class AIService {
     };
     this.safeSave(() => databaseService.saveMessage(agentMessage), 'agent message');
 
-    // Save agent learning/insights if applicable (non-blocking)
-    if (routingResult.agent.id === 'market-analyst' && request.userInput.toLowerCase().includes('swot')) {
-      const learning: AgentLearningRecord = {
-        brandId: 1,
-        agentId: routingResult.agent.id,
-        agentName: routingResult.agent.name,
-        insight: 'Market analysis completed - SWOT analysis performed',
-        insightType: 'Analysis',
-        dataUsed: ['coreUSP', 'targetAudience', 'toneOfVoice', 'industry'],
-        confidence: routingResult.confidence,
-        actionable: true
-      };
-      this.safeSave(() => databaseService.saveAgentLearning(learning), 'agent learning');
+    // ✨ NEW: Universal agent learning - ALL agents record insights (non-blocking)
+    const insight = this.extractInsightFromResponse(
+      routingResult.agent.id,
+      request.userInput,
+      agentResponse
+    );
+
+    if (insight) {
+      const fieldsUsed = dbContext
+        ? databaseContextService.getFieldsUsedByAgent(routingResult.agent.id, dbContext)
+        : [];
+
+      this.safeSave(
+        () => recordLearning(
+          numericBrandId,
+          routingResult.agent.id,
+          routingResult.agent.name,
+          insight,
+          fieldsUsed,
+          routingResult.confidence
+        ),
+        'agent learning'
+      );
     }
 
     // Add to history
@@ -163,30 +182,32 @@ class AIService {
   /**
    * Generate response based on agent
    * Now calls Claude API with proper system prompt and context
+   * ✨ NEW: Includes database context for smarter decisions
    */
   private async generateAgentResponse(
     agent: Agent,
     userInput: string,
-    context: MasterContext
+    context: MasterContext,
+    dbContext?: any
   ): Promise<string> {
     try {
       // Try to call Claude API with system prompt
-      const response = await this.callClaudeAPI(agent, userInput, context);
+      const response = await this.callClaudeAPI(agent, userInput, context, dbContext);
       return response;
     } catch (error) {
       console.warn(`Claude API call failed for ${agent.id}, falling back to template:`, error);
       // Fallback to template if API fails
       const agentResponses: { [key: string]: string } = {
-        'market-analyst': this.generateMarketAnalystResponse(userInput, context),
-        'business-planner': this.generateBusinessPlannerResponse(userInput, context),
-        'insights-agent': this.generateInsightsResponse(userInput, context),
-        'brand-builder': this.generateBrandBuilderResponse(userInput, context),
-        'design-agent': this.generateDesignResponse(userInput, context),
-        'video-generator-art': this.generateVideoArtResponse(userInput, context),
-        'caption-creator': this.generateCaptionResponse(userInput, context),
-        'campaign-planner': this.generateCampaignResponse(userInput, context),
-        'video-generator-script': this.generateVideoScriptResponse(userInput, context),
-        'automation-specialist': this.generateAutomationResponse(userInput, context)
+        'market-analyzer': this.generateMarketAnalyzerResponse(userInput, context, dbContext),
+        'positioning-strategist': this.generatePositioningStrategistResponse(userInput, context, dbContext),
+        'customer-insight-specialist': this.generateCustomerInsightResponse(userInput, context, dbContext),
+        'visual-strategist': this.generateVisualStrategistResponse(userInput, context, dbContext),
+        'brand-voice-architect': this.generateBrandVoiceResponse(userInput, context, dbContext),
+        'narrative-designer': this.generateNarrativeDesignerResponse(userInput, context, dbContext),
+        'content-creator': this.generateContentCreatorResponse(userInput, context, dbContext),
+        'campaign-planner': this.generateCampaignResponse(userInput, context, dbContext),
+        'automation-specialist': this.generateAutomationResponse(userInput, context, dbContext),
+        'analytics-master': this.generateAnalyticsMasterResponse(userInput, context, dbContext)
       };
       return agentResponses[agent.id] || 'Agent response not available';
     }
@@ -195,11 +216,13 @@ class AIService {
   /**
    * Call Claude API with agent system prompt and context
    * This is the REAL AI integration - uses Claude model with proper prompting
+   * ✨ NEW: Includes database context for enhanced responses
    */
   private async callClaudeAPI(
     agent: Agent,
     userInput: string,
-    context: MasterContext
+    context: MasterContext,
+    dbContext?: any
   ): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     const model = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
@@ -209,7 +232,8 @@ class AIService {
     }
 
     // Build context message with Brand Knowledge Template (3-bucket style)
-    const contextInfo = this.buildContextMessage(agent, context);
+    // ✨ NEW: Include database context for enriched data
+    const contextInfo = this.buildContextMessage(agent, context, dbContext);
 
     // Construct messages for Claude API
     const messages = [
@@ -248,8 +272,9 @@ class AIService {
   /**
    * Build context message with Brand Knowledge Template
    * Sends relevant data based on agent cluster (Smart Lazy distribution)
+   * ✨ NEW: Enhanced with database context for richer decision-making
    */
-  private buildContextMessage(agent: Agent, context: MasterContext): string {
+  private buildContextMessage(agent: Agent, context: MasterContext, dbContext?: any): string {
     const uspArray = Array.isArray(context.coreUSP) ? context.coreUSP : [context.coreUSP];
 
     let contextMsg = `# Brand Context for ${context.brandNameTh}
@@ -260,31 +285,90 @@ class AIService {
 - Industry: ${context.industry}
 - Core USP: ${uspArray.join(', ')}`;
 
-    // Add cluster-specific context
+    // Add cluster-specific context from MasterContext
     if (agent.cluster === 'strategy') {
       contextMsg += `\n## Strategy Data
 - Business Model: ${context.businessModel || 'B2C'}
 - Target Audience: ${context.targetAudience}
 - Tone of Voice: ${context.toneOfVoice}`;
+
+      // ✨ Enrich with database context
+      if (dbContext?.competitors && dbContext.competitors.length > 0) {
+        contextMsg += `\n- Competitors: ${dbContext.competitors.join(', ')}`;
+      }
     } else if (agent.cluster === 'creative') {
       contextMsg += `\n## Creative Data
 - Primary Color: ${context.visualStyle?.primaryColor}
 - Mood & Tone: ${context.visualStyle?.moodKeywords?.join(', ')}
 - Video Style: ${context.visualStyle?.videoStyle || 'Not specified'}`;
+
+      // ✨ Enrich with database context
+      if (dbContext?.forbiddenElements && dbContext.forbiddenElements.length > 0) {
+        contextMsg += `\n- Forbidden Elements: ${dbContext.forbiddenElements.join(', ')}`;
+      }
+      if (dbContext?.secondaryColors && dbContext.secondaryColors.length > 0) {
+        contextMsg += `\n- Secondary Colors: ${dbContext.secondaryColors.join(', ')}`;
+      }
     } else if (agent.cluster === 'growth') {
       contextMsg += `\n## Growth Data
 - Target Persona: ${context.targetPersona || context.targetAudience}
 - Tone of Voice: ${context.toneOfVoice}
 - Brand Hashtags: ${context.brandHashtags?.join(', ') || 'Not specified'}`;
+
+      // ✨ Enrich with database context
+      if (dbContext?.forbiddenWords && dbContext.forbiddenWords.length > 0) {
+        contextMsg += `\n- Forbidden Words: ${dbContext.forbiddenWords.join(', ')}`;
+      }
+      if (dbContext?.painPoints && dbContext.painPoints.length > 0) {
+        contextMsg += `\n- Customer Pain Points: ${dbContext.painPoints.join(', ')}`;
+      }
     }
 
     return contextMsg;
   }
 
   /**
-   * Market Analyst Response Template
+   * Extract insight from agent response for learning database
+   * Analyzes response to identify actionable insights
    */
-  private generateMarketAnalystResponse(input: string, context: MasterContext): string {
+  private extractInsightFromResponse(agentId: string, userInput: string, response: string): string | null {
+    // Skip if response is too short
+    if (!response || response.length < 50) return null;
+
+    // Generate insight based on agent and input
+    const inputKeywords = userInput.toLowerCase().split(' ');
+    let insight = `${agentId} analyzed: ${userInput.substring(0, 100)}...`;
+
+    // Add specific insights based on agent type
+    if (agentId === 'market-analyzer' && userInput.toLowerCase().includes('swot')) {
+      insight = `SWOT analysis completed for market evaluation`;
+    } else if (agentId === 'positioning-strategist' && userInput.toLowerCase().includes('positioning')) {
+      insight = `Brand positioning and value proposition defined`;
+    } else if (agentId === 'customer-insight-specialist' && userInput.toLowerCase().includes('customer')) {
+      insight = `Customer journey mapping and persona analysis completed`;
+    } else if (agentId === 'visual-strategist' && userInput.toLowerCase().includes('design')) {
+      insight = `Visual system and brand identity designed`;
+    } else if (agentId === 'brand-voice-architect' && userInput.toLowerCase().includes('voice')) {
+      insight = `Brand voice and tone playbook created`;
+    } else if (agentId === 'narrative-designer' && userInput.toLowerCase().includes('story')) {
+      insight = `Brand story architecture and narrative patterns designed`;
+    } else if (agentId === 'content-creator' && (userInput.toLowerCase().includes('caption') || userInput.toLowerCase().includes('script'))) {
+      insight = `Content strategy framework generated (dual-mode)`;
+    } else if (agentId === 'campaign-planner' && userInput.toLowerCase().includes('campaign')) {
+      insight = `Campaign timeline and milestone mapping planned`;
+    } else if (agentId === 'automation-specialist' && userInput.toLowerCase().includes('automat')) {
+      insight = `Automation workflows configured and optimized`;
+    } else if (agentId === 'analytics-master' && userInput.toLowerCase().includes('kpi')) {
+      insight = `KPI dashboard and measurement framework designed`;
+    }
+
+    return insight;
+  }
+
+  /**
+   * Market Analyzer Response Template (Comparative Analysis Engine)
+   */
+  private generateMarketAnalyzerResponse(input: string, context: MasterContext, dbContext?: any): string {
     const isSwot = input.toLowerCase().includes('swot');
 
     if (isSwot) {
@@ -325,191 +409,221 @@ Core Value: ${context.coreUSP}
   }
 
   /**
-   * Business Planner Response Template
+   * Positioning Strategist Response Template (Positioning Triangle Mapping)
    */
-  private generateBusinessPlannerResponse(input: string, context: MasterContext): string {
-    if (input.toLowerCase().includes('pricing') || input.toLowerCase().includes('ราคา')) {
-      return `💰 Pricing Strategy สำหรับ ${context.brandNameTh}
+  private generatePositioningStrategistResponse(input: string, context: MasterContext, dbContext?: any): string {
+    return `🎯 Positioning Framework สำหรับ ${context.brandNameTh}
 
-กลยุทธ์การตั้งราคา 3 แนวทาง:
+POSITIONING TRIANGLE:
+├─ Axis 1: Price vs Value → ${context.coreUSP}
+├─ Axis 2: Traditional vs Modern → ${context.toneOfVoice}
+└─ Axis 3: Community vs Individual → ${context.targetAudience}
 
-1️⃣ Premium Pricing
-   • เน้นคุณภาพและจุดเด่น: ${context.coreUSP}
-   • เหมาะสำหรับ: High-end products, luxury positioning
-   • โอกาส: Target audience ที่มีกำลังซื้อสูง
+POSITIONING STATEMENT:
+"${context.brandNameEn} is the choice for ${context.targetAudience} who values ${context.coreUSP}"
 
-2️⃣ Competitive Pricing
-   • ตั้งราคาเทียบเท่าคู่แข่ง
-   • เน้นมูลค่าส่วนเพิ่ม (Value Add)
-   • ต้องศึกษาราคาคู่แข่งก่อน
+PRIMARY PILLARS:
+1. ${context.coreUSP} - จุดเด่นหลัก
+2. ${context.toneOfVoice} - Brand Personality
+3. Community Connection - สร้างความผูกพัน
 
-3️⃣ Value-Based Pricing
-   • ตั้งราคาตามคุณค่าที่ให้แก่ลูกค้า
-   • ตรงกับ Brand Voice: ${context.toneOfVoice}
-   • เหมาะสำหรับบ้านและเล็กน้อย
+VALUE PROPOSITION HIERARCHY:
+✓ Functional: ${context.coreUSP}
+✓ Emotional: ${context.visualStyle?.moodKeywords?.join(', ') || 'Trust & Connection'}
+✓ Social: ${context.targetAudience}
 
-📌 ข้อแนะนำ: ต้องคำนวณต้นทุนจริงก่อน เพื่อให้ได้ราคาที่เหมาะสม`;
-    }
-
-    return `💰 Business Planning Guide
-
-ขั้นตอนหลักในการวางแผนธุรกิจ:
-1. คำนวณต้นทุน (Cost Analysis)
-2. กำหนดราคา (Pricing Strategy)
-3. วางแผนงบประมาณ (Budget Planning)
-4. คาดการณ์ ROI (Return on Investment)
-
-พร้อมช่วยคุณในแต่ละขั้นตอน - ให้รายละเอียดเพิ่มเติมได้`;
+📌 Next Step: ใช้ Positioning นี้เป็นแม่แบบสำหรับ Creative & Growth Teams`;
   }
 
   /**
-   * Insights Agent Response Template
+   * Customer Insight Specialist Response Template (Journey Stage Mapping)
    */
-  private generateInsightsResponse(input: string, context: MasterContext): string {
-    return `📈 Analytics & Insights สำหรับ ${context.brandNameTh}
+  private generateCustomerInsightResponse(input: string, context: MasterContext, dbContext?: any): string {
+    return `👥 Customer Journey Map สำหรับ ${context.brandNameTh}
 
-Key Metrics to Track:
-📊 Conversion Rate - จำนวนผู้ดูที่กลายเป็นลูกค้า
-👥 Engagement Rate - ปฏิสัมพันธ์จากออดิเอนส์
-💬 Reach & Impressions - ความกว้างของการเข้าถึง
-⏱️ Customer Lifetime Value - มูลค่าลูกค้าตลอดอายุ
+TARGET PERSONA: ${context.targetAudience}
 
-Dashboard ควรมี:
-✓ Daily/Weekly/Monthly Performance
-✓ Channel Performance (Social, Website, Store)
-✓ Customer Acquisition Cost (CAC)
-✓ Brand Sentiment Analysis
+STAGE 1: AWARENESS (Social discovery)
+├─ Touchpoints: Instagram, TikTok, Blog
+├─ Customer Mindset: "Is there a better option?"
+├─ Pain Point: Information overload
+└─ Emotion: Curious but skeptical
+
+STAGE 2: CONSIDERATION (Research phase)
+├─ Touchpoints: Website, Reviews, FAQ
+├─ Customer Mindset: "Does this solve my problem?"
+├─ Pain Point: Lack of proof/testimonials
+└─ Emotion: Interested but cautious
+
+STAGE 3: DECISION (Purchase)
+├─ Touchpoints: Email, Checkout, Support
+├─ Customer Mindset: "Will I regret this?"
+├─ Pain Point: Trust & guarantee
+└─ Emotion: Hopeful & committed
+
+KEY METRICS:
+📊 Awareness: Reach & Impressions
+📊 Consideration: Engagement Rate
+📊 Decision: Conversion Rate
+📊 Retention: Customer Lifetime Value
 
 💡 Recommendation: ให้บอกตัวเลขจริงได้เลย - จะช่วยวิเคราะห์ได้ลึกขึ้น`;
   }
 
   /**
-   * Brand Builder Response Template
+   * Visual Strategist Response Template (Personality-to-Visual Translation)
    */
-  private generateBrandBuilderResponse(input: string, context: MasterContext): string {
-    return `🎨 Brand Identity Guide สำหรับ ${context.brandNameTh}
+  private generateVisualStrategistResponse(input: string, context: MasterContext, dbContext?: any): string {
+    return `🎨 Visual System Blueprint สำหรับ ${context.brandNameTh}
 
-Brand Essence:
-✨ Brand Name: ${context.brandNameTh} (${context.brandNameEn})
-🎯 Core USP: ${context.coreUSP}
-🎨 Primary Color: ${context.visualStyle.primaryColor}
-🎭 Mood & Tone: ${context.visualStyle.moodKeywords.join(', ')}
-👥 Target Audience: ${context.targetAudience}
-💬 Tone of Voice: ${context.toneOfVoice}
-
-Brand Personality:
-${this.generatePersonalityTraits(context.toneOfVoice)}
-
-Brand Promise:
-✓ สัญญาที่ส่งให้ลูกค้า: ${context.coreUSP}
-✓ Emotional Connection: ${context.visualStyle.moodKeywords[0]}
-✓ Consistency ในทุกจุดสัมผัส
-
-📌 Next Step: ใช้ Brand Identity นี้เป็นแม่แบบสำหรับ Design, Content, Marketing`;
-  }
-
-  /**
-   * Design Agent Response Template
-   */
-  private generateDesignResponse(input: string, context: MasterContext): string {
-    return `✏️ Design Guidelines สำหรับ ${context.brandNameTh}
-
-Color Palette:
+COLOR PSYCHOLOGY:
 🎨 Primary: ${context.visualStyle.primaryColor}
+   Psychology: Trust, Stability, Brand Recognition
 🎨 Secondary: Complementary color (derive from primary)
 🎨 Accent: Highlights and CTAs
 🎨 Neutral: Grays for backgrounds and text
 
-Typography System:
-📝 Heading Font: Oswald (Bold, Modern)
-📝 Body Font: Spectral (Readable, Elegant)
-📝 Font Size Hierarchy: Clear distinction between h1, h2, h3
+TYPOGRAPHY HIERARCHY:
+📝 Headlines: Bold serif - Authority & Heritage
+📝 Body: Clean sans-serif - Modern & Accessible
+📝 Accent: Script (subtle) - Personality
 
-UI/UX Principles:
-✓ Mobile-First Approach (Responsive Design)
-✓ Legibility Check: ทุกข้อความต้องอ่านออกชัด
-✓ Accessibility: คิดถึงผู้พิการ
-✓ Consistency: ใช้ Component Library
+VISUAL PATTERNS:
+✓ Imagery: Authentic lifestyle (not stock photos)
+✓ Whitespace: 40-50% for premium feel
+✓ Mobile-First: Responsive Design
+✓ WCAG 2.1 Accessible
 
-Landing Page Structure (Reference: Land-book.com):
-1. Hero Section - จับสายตา (3-4 วินาที)
-2. Value Proposition - อธิบายจุดเด่น
-3. Social Proof - ความเชื่อมั่น
-4. CTA Section - ส่ง Call to Action
-5. Footer - ข้อมูลติดต่อ`;
+MOOD TRANSLATION:
+Brand Personality: ${context.toneOfVoice}
+→ Visual Feel: ${context.visualStyle?.moodKeywords?.join(', ') || 'Modern & Clean'}
+
+📌 All visuals must reflect USP: ${context.coreUSP}`;
   }
 
   /**
-   * Video Generator (Art) Response Template
+   * Brand Voice Architect Response Template (Tone Context Matrix)
    */
-  private generateVideoArtResponse(input: string, context: MasterContext): string {
-    return `🎬 Video Creative Direction สำหรับ ${context.brandNameTh}
+  private generateBrandVoiceResponse(input: string, context: MasterContext, dbContext?: any): string {
+    return `🗣️ Voice & Tone Playbook สำหรับ ${context.brandNameTh}
 
-Theme Concept:
-🎥 Visual Mood: ${context.visualStyle.moodKeywords.join(' + ')}
-🎥 Color Grading: ตามสีแบรนด์ ${context.visualStyle.primaryColor}
-🎥 Animation Style: ${this.getAnimationStyle(context.toneOfVoice)}
-🎥 Target Emotion: ${context.visualStyle.moodKeywords[0]}
+CORE VOICE: ${context.toneOfVoice}
 
-Scene Planning:
-📍 Opening: ดึงความสนใจแบบ Hard-Hitting
-📍 Middle: Storytelling ที่เน้น ${context.coreUSP}
-📍 Close: Strong CTA และ Brand Presence
+VOICE PERSONALITY:
+${this.generatePersonalityTraits(context.toneOfVoice)}
 
-Production Notes:
-✓ Duration: 15-60 seconds (สั้นแต่มีประสิทธิภาพ)
-✓ Quality: 4K Minimum สำหรับ Professional
-✓ Sound Design: ตรงกับ Mood
-✓ Typography Integration: Brand Font ชัดเจน
+TONE VARIATIONS BY CONTEXT:
+Context           | Tone            | Example
+──────────────────────────────────────────────
+Happy news       | Celebratory     | "We did it together!"
+Problem solving  | Empathetic      | "We hear you, here's how..."
+Education        | Patient mentor  | "Let's break this down..."
+Marketing        | Warm + excited  | "You're part of our story!"
 
-📌 Avoid: เลียนแบบศิลปินอื่น - ใช้ Mood Keywords เท่านั้น`;
+DO's & DON'Ts:
+✓ DO: Use contractions (we're, it's)
+✓ DO: Ask questions to engage
+✓ DO: Share stories and examples
+✗ DON'T: Use corporate jargon
+✗ DON'T: Be overly formal or casual
+✗ DON'T: Use forbidden words
+
+📌 Brand Voice must align with USP: ${context.coreUSP}`;
   }
 
   /**
-   * Caption Creator Response Template
+   * Narrative Designer Response Template (Hero's Journey)
    */
-  private generateCaptionResponse(input: string, context: MasterContext): string {
-    return `💬 Caption Writing - 6 Styles × Multi-language
+  private generateNarrativeDesignerResponse(input: string, context: MasterContext, dbContext?: any): string {
+    return `📚 Brand Story Architecture สำหรับ ${context.brandNameTh}
 
-Caption Styles สำหรับ ${context.brandNameTh}:
+THE BRAND ORIGIN STORY:
 
-1️⃣ Emotional Hook
-   "สไตล์ดึงอารมณ์ - ทำให้คนรู้สึก"
-   ตัวอย่าง: "${context.visualStyle.moodKeywords[0].toUpperCase()} is not just a word, it's a feeling..."
+ACT I: THE INCITING INCIDENT
+"The founding moment - what problem sparked the creation of ${context.brandNameEn}"
 
-2️⃣ Educational/Value
-   "สอนและให้คุณค่า"
-   ตัวอย่าง: "Did you know? ${context.coreUSP}..."
+ACT II: THE JOURNEY & STRUGGLE
+"The challenges faced, lessons learned, and growth moments"
 
-3️⃣ Playful/Fun
-   "สนุก ฮา ทำให้ยิ้ม"
-   ตัวอย่าง: "Who else thinks... 🎉"
+ACT III: THE TRANSFORMATION
+"How ${context.brandNameEn} became what it is today - ${context.coreUSP}"
 
-4️⃣ Problem-Solution
-   "เสนอแก้ปัญหา"
-   ตัวอย่าง: "Tired of...? We have the answer."
+HERO'S JOURNEY ARCHETYPE:
+Role: Guide ${context.targetAudience} through transformation
 
-5️⃣ Social Proof
-   "สร้างความเชื่อมั่น"
-   ตัวอย่าง: "Join 10k+ happy customers..."
+NARRATIVE PATTERNS TO TELL:
+✓ Origin story (heritage + authenticity)
+✓ Customer transformation stories (social proof)
+✓ Behind-the-scenes (humanizes brand)
+✓ Community stories (belonging)
 
-6️⃣ Call-to-Action
-   "เรียกให้ลูกค้าทำอะไรบางอย่าง"
-   ตัวอย่าง: "Tap the link in bio 👆"
+VISUAL STORYTELLING:
+🎬 Mood: ${context.visualStyle?.moodKeywords?.join(' + ') || context.toneOfVoice}
+🎬 Style: Authentic, Emotional, Brand-aligned
 
-Language Variations:
-🇹🇭 Thai - ${context.toneOfVoice} tone
-🇬🇧 English - Professional variation
-🇨🇳 Chinese - Cultural adaptation
-🇯🇵 Japanese - Market-specific
+📌 Every story must reflect USP: ${context.coreUSP}`;
+  }
 
-📌 Key Rule: ทั้ง 6 สไตล์ต้องเน้น "${context.coreUSP}" และสอดคล้องกับ Tone "${context.toneOfVoice}"`;
+  /**
+   * Content Creator Response Template (Dual-Mode: Caption + Script)
+   */
+  private generateContentCreatorResponse(input: string, context: MasterContext, dbContext?: any): string {
+    const isScript = input.toLowerCase().includes('script') || input.toLowerCase().includes('video') || input.toLowerCase().includes('scene');
+
+    if (isScript) {
+      return `🎬 Video Script Outline สำหรับ ${context.brandNameTh}
+
+SCENE 1: HOOK (0-3s)
+Visual: Eye-catching opening
+Audio: "${context.coreUSP}" - trending sound
+Mood: ${context.visualStyle?.moodKeywords?.[0] || 'Warm'}
+
+SCENE 2: BODY (3-12s)
+Visual: Storytelling + product showcase
+Audio: Brand narrative
+Mood: Authentic, trustworthy
+
+SCENE 3: CTA (12-15s)
+Visual: Logo + contact info
+Audio: Clear call-to-action
+Mood: Inviting, action-oriented
+
+PRODUCTION:
+• Format: 9:16 (TikTok/Reels)
+• Duration: 15 seconds
+• Music: Match brand tone "${context.toneOfVoice}"
+
+📌 Script reflects USP: ${context.coreUSP}`;
+    }
+
+    return `✨ Caption Strategy Framework สำหรับ ${context.brandNameTh}
+
+HOOK PATTERNS:
+• Pattern A: Pain point + Solution
+  "Tired of [problem]? Here's the fix."
+• Pattern B: Lifestyle aspirational
+  "${context.visualStyle?.moodKeywords?.[0] || 'Quality'} is not just a word, it's a feeling"
+• Pattern C: Community belonging
+  "Join ${context.targetAudience} discovering ${context.coreUSP}"
+
+CTA FORMULAS:
+• Action: "Try now", "Discover our story"
+• Engagement: "Tag a friend", "Share your experience"
+• Question: "What's yours?", "Do you agree?"
+
+STYLE VARIATIONS:
+1️⃣ Professional/Expert - Knowledge & Authority
+2️⃣ Storytelling - Emotion & Connection
+3️⃣ Casual/Fun - Personality & Engagement
+4️⃣ CTA-Focused - Action & Conversion
+
+📌 All captions must use Tone: "${context.toneOfVoice}" and emphasize: "${context.coreUSP}"`;
   }
 
   /**
    * Campaign Planner Response Template
    */
-  private generateCampaignResponse(input: string, context: MasterContext): string {
+  private generateCampaignResponse(input: string, context: MasterContext, dbContext?: any): string {
     return `📅 30-Day Content Calendar สำหรับ ${context.brandNameTh}
 
 Campaign Strategy - Double Digit Approach:
@@ -544,7 +658,7 @@ Content Mix (Diversify):
   /**
    * Automation Specialist Response Template
    */
-  private generateAutomationResponse(input: string, context: MasterContext): string {
+  private generateAutomationResponse(input: string, context: MasterContext, dbContext?: any): string {
     const isScheduling = input.toLowerCase().includes('schedule') || input.toLowerCase().includes('automat');
     const isMakeCom = input.toLowerCase().includes('make.com') || input.toLowerCase().includes('webhook');
 
@@ -652,40 +766,44 @@ What would you like to automate?
   }
 
   /**
-   * Video Generator (Script) Response Template
+   * Analytics Master Response Template (KPI Hierarchy + Metric Relationships)
    */
-  private generateVideoScriptResponse(input: string, context: MasterContext): string {
-    return `🎞️ Video Script & Production Guide สำหรับ ${context.brandNameTh}
+  private generateAnalyticsMasterResponse(input: string, context: MasterContext, dbContext?: any): string {
+    return `📊 Measurement Framework สำหรับ ${context.brandNameTh}
 
-Production Specifications:
-📹 Camera Setup: 2-4× 4K Cameras
-📸 Lens: 50mm f/1.8 (Prime for clarity)
-🌐 Internet: 20-50 Mbps Upload Speed
-⏱️ Duration: 30-60 minutes (Optimal for Conversion)
-🎯 Target: 12.8% Conversion Rate
+BUSINESS OBJECTIVE: Growth for ${context.industry}
 
-Script Structure:
+PRIMARY KPI:
+├─ Customer Lifetime Value (CLV)
+└─ Target: Increase by 50%+ in 6 months
 
-[OPENING - 0-2 min]
-🎬 Hook: ดึงความสนใจทันที
-📝 Show: ${context.coreUSP}
-🎯 Tell: ทำไมผู้ดูควรสนใจ
+SECONDARY METRICS:
+├─ Average Order Value (AOV)
+├─ Repeat Purchase Rate
+├─ Customer Retention Rate
+└─ Net Promoter Score (NPS)
 
-[MIDDLE - 2-50 min]
-📍 Product Showcase: ที่มีสไตล์ ${context.visualStyle.moodKeywords.join(', ')}
-📍 Benefits Deep Dive: ตรงจุดต้องการของ ${context.targetAudience}
-📍 Social Proof: Customer testimonials
-📍 Address Objections: ตอบข้ออ้างปกติ
+DIAGNOSTIC METRICS:
+├─ Content engagement (by type)
+├─ Email open rates (by segment)
+├─ Social conversion (by platform)
+└─ Support satisfaction (by issue type)
 
-[CLOSING - 50-60 min]
-🎯 CTA: ชัดเจน "Click link below" / "Comment your interest"
-📞 Contact: ช่องติดต่อให้หลากหลาย
-✨ Brand Sign-off: ตรงกับ Tone "${context.toneOfVoice}"
+DASHBOARD LAYOUT:
+Top Row:    Revenue | CLV | AOV | Repeat Rate
+Mid Row:    Engagement | Retention | NPS | CAC
+Bottom Row: Channel Performance | Content Analysis | Cohort Trends
 
-Editing Notes:
-✓ Color Grading: ${context.visualStyle.primaryColor} dominance
-✓ Pacing: เร็วในช่วงแรก ช้าๆ ตอนขาย
-✓ Graphics: ใช้ Brand Font "${context.toneOfVoice}"`;
+TRACKING TEMPLATE:
+┌─────────────┬──────────┬────────┬──────────┐
+│ Metric      │ Current  │ Target │ Progress │
+├─────────────┼──────────┼────────┼──────────┤
+│ CLV         │ TBD      │ +50%   │ Pending  │
+│ AOV         │ TBD      │ +30%   │ Pending  │
+│ Repeat Rate │ TBD      │ +40%   │ Pending  │
+└─────────────┴──────────┴────────┴──────────┘
+
+💡 ให้บอกตัวเลขจริงได้เลย - จะช่วยวิเคราะห์ได้ลึกขึ้น`;
   }
 
   /**

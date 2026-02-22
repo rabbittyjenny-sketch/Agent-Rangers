@@ -33,7 +33,7 @@ export interface RoutingDecision {
 export const jobClassification = {
   // Strategy Team Keywords
   MARKET_ANALYSIS: {
-    agents: ['market-analyst'],
+    agents: ['market-analyzer'],
     keywords: [
       'market',
       'competitor',
@@ -46,110 +46,114 @@ export const jobClassification = {
       'customer',
       'behavior'
     ],
-    mustNotOverlapWith: ['business-planner', 'insights-agent']
+    mustNotOverlapWith: ['positioning-strategist', 'customer-insight-specialist']
   },
 
-  FINANCIAL_PLANNING: {
-    agents: ['business-planner'],
+  POSITIONING_STRATEGY: {
+    agents: ['positioning-strategist'],
     keywords: [
+      'positioning',
+      'usp',
+      'value',
+      'pricing',
       'cost',
-      'price',
       'budget',
       'roi',
-      'financial',
-      'expense',
-      'revenue',
-      'profit',
-      'break-even',
-      'margin'
+      'value proposition',
+      'differentiation',
+      'competitive advantage'
     ],
-    mustNotOverlapWith: ['market-analyst', 'insights-agent']
+    mustNotOverlapWith: ['market-analyzer', 'customer-insight-specialist']
   },
 
-  PERFORMANCE_INSIGHTS: {
-    agents: ['insights-agent'],
+  CUSTOMER_INSIGHTS: {
+    agents: ['customer-insight-specialist'],
     keywords: [
+      'customer',
+      'journey',
+      'persona',
       'kpi',
       'analytics',
       'performance',
-      'metrics',
-      'dashboard',
-      'report',
       'insights',
       'data',
       'tracking',
       'monitoring'
     ],
-    mustNotOverlapWith: ['market-analyst', 'business-planner']
+    mustNotOverlapWith: ['market-analyzer', 'positioning-strategist']
   },
 
   // Creative Team Keywords
-  BRAND_STRATEGY: {
-    agents: ['brand-builder'],
-    keywords: [
-      'brand',
-      'identity',
-      'mood',
-      'tone',
-      'personality',
-      'voice',
-      'value proposition',
-      'emotion',
-      'connection'
-    ],
-    mustNotOverlapWith: ['design-agent', 'video-generator-art']
-  },
-
-  DESIGN_VISUAL: {
-    agents: ['design-agent'],
+  VISUAL_DESIGN: {
+    agents: ['visual-strategist'],
     keywords: [
       'design',
-      'logo',
-      'ui',
-      'ux',
       'visual',
       'color',
       'typography',
+      'logo',
+      'ui',
+      'ux',
       'layout',
       'aesthetic',
       'artwork',
       'icon',
       'image'
     ],
-    mustNotOverlapWith: ['brand-builder', 'video-generator-art']
+    mustNotOverlapWith: ['brand-voice-architect', 'narrative-designer']
   },
 
-  VIDEO_ART_PLANNING: {
-    agents: ['video-generator-art'],
+  BRAND_VOICE: {
+    agents: ['brand-voice-architect'],
     keywords: [
+      'tone',
+      'voice',
+      'brand',
+      'personality',
+      'mood',
+      'communication',
+      'identity',
+      'value proposition',
+      'emotion',
+      'connection'
+    ],
+    mustNotOverlapWith: ['visual-strategist', 'narrative-designer']
+  },
+
+  NARRATIVE_STORY: {
+    agents: ['narrative-designer'],
+    keywords: [
+      'story',
+      'narrative',
+      'origin',
+      'values',
+      'emotion',
       'video',
       'theme',
-      'visual direction',
-      'shot list',
-      'scene',
-      'composition',
-      'breakdown',
       'storyboard',
-      'cinematography'
+      'cinematography',
+      'composition'
     ],
-    mustNotOverlapWith: ['video-generator-script', 'design-agent']
+    mustNotOverlapWith: ['visual-strategist', 'brand-voice-architect']
   },
 
   // Growth Team Keywords
   CONTENT_STRATEGY: {
-    agents: ['caption-creator'],
+    agents: ['content-creator'],
     keywords: [
       'caption',
       'copy',
-      'content strategy',
+      'content',
       'hook',
-      'style guide',
       'cta',
+      'script',
+      'video',
+      'scene',
+      'production',
       'copywriting',
-      'emotion',
       'engagement'
     ],
-    mustNotOverlapWith: ['campaign-planner', 'video-generator-script']
+    mustNotOverlapWith: ['campaign-planner']
   },
 
   CAMPAIGN_PLANNING: {
@@ -164,21 +168,7 @@ export const jobClassification = {
       'schedule',
       'planning'
     ],
-    mustNotOverlapWith: ['caption-creator', 'video-generator-script']
-  },
-
-  VIDEO_SCRIPT_PLANNING: {
-    agents: ['video-generator-script'],
-    keywords: [
-      'script',
-      'video script',
-      'content structure',
-      'production plan',
-      'script outline',
-      'trend analysis',
-      'viral'
-    ],
-    mustNotOverlapWith: ['video-generator-art', 'campaign-planner']
+    mustNotOverlapWith: ['content-creator']
   },
 
   AUTOMATION_SETUP: {
@@ -195,6 +185,22 @@ export const jobClassification = {
       'integration'
     ],
     mustNotOverlapWith: ['campaign-planner']
+  },
+
+  ANALYTICS_MEASUREMENT: {
+    agents: ['analytics-master'],
+    keywords: [
+      'kpi',
+      'analytics',
+      'metrics',
+      'dashboard',
+      'performance',
+      'tracking',
+      'report',
+      'measurement',
+      'data'
+    ],
+    mustNotOverlapWith: ['customer-insight-specialist']
   }
 };
 
@@ -273,8 +279,9 @@ export function findBestRoute(request: JobRequest): RoutingDecision {
 }
 
 /**
- * Validate Output Quality
- * ใช้ก่อนส่งผลลัพธ์ให้ผู้ใช้
+ * Quick Output Validation (Lightweight version)
+ * Use validation-rules.ts for comprehensive validation
+ * This is for quick routing checks only
  */
 export interface OutputValidation {
   isValid: boolean;
@@ -285,82 +292,29 @@ export interface OutputValidation {
 
 export function validateAgentOutput(
   agentId: string,
-  output: any,
-  masterContext: any
+  output: any
 ): OutputValidation {
   const issues: string[] = [];
   const warnings: string[] = [];
   let confidence = 1.0;
 
-  // Check 1: Output Format
+  // Basic checks only
   if (!output || typeof output !== 'object') {
     issues.push(`Output ต้องเป็น Object - ได้รับ ${typeof output}`);
-    confidence -= 0.5;
+    return { isValid: false, issues, warnings, confidence: 0 };
   }
 
-  // Check 2: Required Fields
+  // Check required fields
   const requiredFields = ['task', 'result', 'reasoning'];
-  for (const field of requiredFields) {
-    if (!output[field]) {
-      warnings.push(`ไม่พบ "${field}" - แนะนำให้เพิ่มเติม`);
-      confidence -= 0.1;
-    }
-  }
+  const missingFields = requiredFields.filter(f => !output[f]);
 
-  // Check 3: Fact Grounding
-  if (output.result && typeof output.result === 'string') {
-    const hallucMarkers = [
-      'ฉันประมาณ',
-      'น่าจะ',
-      'อาจจะ',
-      'สมมุติว่า',
-      'ถ้าหาก'
-    ];
-
-    if (hallucMarkers.some(m => output.result.includes(m))) {
-      warnings.push('พบตัวบ่งชี้ Hallucination - ควรอ้างอิงข้อมูลจริง');
-      confidence -= 0.2;
-    }
-  }
-
-  // Check 4: Agent-Specific Constraints
-  const agentConstraints: {
-    [key: string]: (output: any) => string[];
-  } = {
-    'market-analyst': (o) => {
-      const issues = [];
-      if (!o.sources) issues.push('ต้องระบุ Sources');
-      if (!o.confidence) issues.push('ต้องให้ Confidence Score');
-      return issues;
-    },
-    'business-planner': (o) => {
-      const issues = [];
-      if (!o.calculations) issues.push('ต้องแสดง Calculations');
-      if (!o.tradeoffs) issues.push('ต้องแสดง Trade-offs');
-      return issues;
-    },
-    'insights-agent': (o) => {
-      const issues = [];
-      if (!o.dataSource) issues.push('ต้องระบุ Data Source');
-      if (!o.metrics) issues.push('ต้องระบุ Metrics ที่ใช้');
-      return issues;
-    },
-    'caption-creator': (o) => {
-      const issues = [];
-      if (!o.templates) issues.push('ต้องให้ Templates');
-      if (!o.styleGuide) issues.push('ต้องให้ Style Guide');
-      return issues;
-    }
-  };
-
-  if (agentConstraints[agentId]) {
-    const agentIssues = agentConstraints[agentId](output);
-    issues.push(...agentIssues);
-    confidence -= agentIssues.length * 0.1;
+  if (missingFields.length > 0) {
+    issues.push(`ขาดฟิลด์: ${missingFields.join(', ')}`);
+    confidence -= missingFields.length * 0.15;
   }
 
   return {
-    isValid: issues.length === 0,
+    isValid: issues.length === 0 && confidence > 0.5,
     issues,
     warnings,
     confidence: Math.max(0, confidence)
@@ -405,19 +359,19 @@ export const agentResponsibilities: {
     cannotDo: string[];
   };
 } = {
-  'market-analyst': {
+  'market-analyzer': {
     primary: ['SWOT Analysis', 'Competitor Analysis', 'Market Gap Identification'],
-    canCollaborate: ['business-planner', 'insights-agent'],
+    canCollaborate: ['positioning-strategist', 'customer-insight-specialist'],
     cannotDo: [
-      'Financial Calculation',
+      'Positioning Strategy',
       'Design',
       'Content Creation',
       'Automation'
     ]
   },
-  'business-planner': {
-    primary: ['Cost Calculation', 'Pricing Strategy', 'Budget Planning'],
-    canCollaborate: ['market-analyst', 'insights-agent'],
+  'positioning-strategist': {
+    primary: ['Positioning Strategy', 'USP Development', 'Pricing Strategy'],
+    canCollaborate: ['market-analyzer', 'customer-insight-specialist'],
     cannotDo: [
       'Market Analysis',
       'Design',
@@ -425,71 +379,59 @@ export const agentResponsibilities: {
       'Automation'
     ]
   },
-  'insights-agent': {
-    primary: ['KPI Tracking', 'Performance Analysis', 'Recommendation'],
-    canCollaborate: ['market-analyst', 'business-planner', 'campaign-planner'],
+  'customer-insight-specialist': {
+    primary: ['Customer Journey Mapping', 'Persona Development', 'Performance Analysis'],
+    canCollaborate: ['market-analyzer', 'positioning-strategist', 'analytics-master'],
     cannotDo: ['Design', 'Content Creation', 'Script Writing', 'Automation']
   },
-  'brand-builder': {
-    primary: ['Brand Identity', 'Tone of Voice', 'Brand Guidelines'],
-    canCollaborate: ['design-agent', 'caption-creator'],
+  'visual-strategist': {
+    primary: ['Visual Design', 'Logo Design', 'UI/UX Design'],
+    canCollaborate: ['brand-voice-architect', 'narrative-designer'],
     cannotDo: [
-      'Financial Calculation',
+      'Positioning Strategy',
       'Market Analysis',
       'Content Writing',
       'Automation'
     ]
   },
-  'design-agent': {
-    primary: ['Logo Design', 'Visual Identity', 'UI/UX Design'],
-    canCollaborate: ['brand-builder', 'video-generator-art'],
+  'brand-voice-architect': {
+    primary: ['Brand Voice', 'Tone of Voice', 'Communication Guidelines'],
+    canCollaborate: ['visual-strategist', 'content-creator'],
     cannotDo: [
-      'Brand Strategy',
-      'Financial Calculation',
-      'Content Writing',
+      'Positioning Strategy',
+      'Market Analysis',
+      'Visual Design',
       'Automation'
     ]
   },
-  'video-generator-art': {
-    primary: ['Video Concept Planning', 'Visual Direction', 'Shot List'],
-    canCollaborate: ['design-agent', 'video-generator-script'],
+  'narrative-designer': {
+    primary: ['Brand Story', 'Narrative Strategy', 'Video Theme Direction'],
+    canCollaborate: ['visual-strategist', 'brand-voice-architect', 'content-creator'],
     cannotDo: [
-      'Script Writing',
       'Caption Writing',
-      'Financial Calculation',
+      'Positioning Strategy',
+      'Market Analysis',
       'Automation'
     ]
   },
-  'caption-creator': {
-    primary: ['Caption Strategy', 'Style Guide', 'Copywriting Framework'],
-    canCollaborate: ['brand-builder', 'campaign-planner'],
+  'content-creator': {
+    primary: ['Caption Strategy', 'Copywriting Framework', 'Script Planning', 'Video Production Flow'],
+    canCollaborate: ['brand-voice-architect', 'narrative-designer', 'campaign-planner'],
     cannotDo: [
-      'Video Creation',
-      'Design',
-      'Financial Calculation',
+      'Visual Design',
+      'Positioning Strategy',
       'Market Analysis',
       'Automation'
     ]
   },
   'campaign-planner': {
     primary: ['Content Calendar', 'Campaign Strategy', 'Trend Integration'],
-    canCollaborate: ['caption-creator', 'insights-agent', 'automation-specialist'],
+    canCollaborate: ['content-creator', 'analytics-master', 'automation-specialist'],
     cannotDo: [
       'Design',
-      'Financial Calculation',
+      'Positioning Strategy',
       'Market Analysis',
       'Video Creation'
-    ]
-  },
-  'video-generator-script': {
-    primary: ['Script Outline Planning', 'Trend Analysis', 'Production Flow'],
-    canCollaborate: ['video-generator-art', 'campaign-planner'],
-    cannotDo: [
-      'Design',
-      'Caption Writing',
-      'Financial Calculation',
-      'Market Analysis',
-      'Automation'
     ]
   },
   'automation-specialist': {
@@ -498,13 +440,24 @@ export const agentResponsibilities: {
       'Content Scheduling',
       'Make.com Integration'
     ],
-    canCollaborate: ['campaign-planner'],
+    canCollaborate: ['campaign-planner', 'analytics-master'],
     cannotDo: [
       'Design',
       'Content Writing',
-      'Financial Calculation',
+      'Positioning Strategy',
       'Market Analysis',
       'Brand Strategy'
+    ]
+  },
+  'analytics-master': {
+    primary: ['KPI Tracking', 'Dashboard Design', 'Performance Reporting'],
+    canCollaborate: ['customer-insight-specialist', 'campaign-planner', 'automation-specialist'],
+    cannotDo: [
+      'Design',
+      'Content Writing',
+      'Market Analysis',
+      'Brand Strategy',
+      'Automation'
     ]
   }
 };

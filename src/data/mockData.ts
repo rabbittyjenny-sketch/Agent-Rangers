@@ -19,8 +19,8 @@ export const mockConversations = [
       },
       {
         role: 'agent',
-        agentId: 'market-analyst',
-        agentName: 'Market Analyst',
+        agentId: 'market-analyzer',
+        agentName: 'Market Analyzer',
         content: 'แล้ว! มาวิเคราะห์ SWOT ร้านกาแฟของเรากันนะ...'
       }
     ]
@@ -36,8 +36,8 @@ export const mockConversations = [
       },
       {
         role: 'agent',
-        agentId: 'design-agent',
-        agentName: 'Design Agent',
+        agentId: 'visual-strategist',
+        agentName: 'Visual Strategist',
         content: 'มาออกแบบโลโก้ที่สะท้อนบุคลิก Art Coffee Studio...'
       }
     ]
@@ -64,7 +64,7 @@ export const mockConversations = [
 // Sample analysis results
 export const mockAnalysisResults = {
   swot_coffee: {
-    agentId: 'market-analyst',
+    agentId: 'market-analyzer',
     analysis: 'SWOT Analysis: Art Coffee Studio',
     strengths: [
       'Premium specialty coffee with unique brewing methods',
@@ -93,7 +93,7 @@ export const mockAnalysisResults = {
   },
 
   pricing_coffee: {
-    agentId: 'business-planner',
+    agentId: 'positioning-strategist',
     analysis: 'Pricing Strategy: Art Coffee Studio',
     recommendations: [
       {
@@ -115,7 +115,7 @@ export const mockAnalysisResults = {
   },
 
   caption_examples: {
-    agentId: 'caption-creator',
+    agentId: 'content-creator',
     examples: [
       {
         style: 'Emotional Hook',
@@ -245,13 +245,13 @@ export const routingTestCases = [
   {
     input: 'วิเคราะห์ SWOT ร้านกาแฟ',
     expectedCluster: 'strategy',
-    expectedAgent: 'market-analyst',
+    expectedAgent: 'market-analyzer',
     reason: 'Contains SWOT keyword - Market Analyst'
   },
   {
     input: 'ออกแบบโลโก้ใหม่สำหรับแบรนด์',
     expectedCluster: 'creative',
-    expectedAgent: 'design-agent',
+    expectedAgent: 'visual-strategist',
     reason: 'Contains design/logo keyword - Design Agent'
   },
   {
@@ -263,20 +263,20 @@ export const routingTestCases = [
   {
     input: 'คำนวณต้นทุนและตั้งราคา',
     expectedCluster: 'strategy',
-    expectedAgent: 'business-planner',
-    reason: 'Contains cost/pricing keyword - Business Planner'
+    expectedAgent: 'positioning-strategist',
+    reason: 'Contains cost/pricing keyword - Positioning Strategist'
   },
   {
     input: 'Color Palette สำหรับแบรนด์อาหาร',
     expectedCluster: 'creative',
-    expectedAgent: 'design-agent',
+    expectedAgent: 'visual-strategist',
     reason: 'Contains color/design keyword - Design Agent'
   },
   {
     input: 'เขียนแคปชั่นให้หลายสไตล์',
     expectedCluster: 'growth',
-    expectedAgent: 'caption-creator',
-    reason: 'Contains caption keyword - Caption Creator'
+    expectedAgent: 'content-creator',
+    reason: 'Contains caption keyword - Content Creator'
   }
 ];
 
