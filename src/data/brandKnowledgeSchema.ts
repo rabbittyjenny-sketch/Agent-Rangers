@@ -159,7 +159,7 @@ export interface BrandKnowledgeSchema {
     // Platform Strategy
     platform_strategy: {
       primary_platform: string;        // e.g., "Instagram", "TikTok", "Facebook"
-      secondary_platforms: string[];   // e.g., ["YouTube", "LINE OA"]
+      secondary_platforms: string[];   // e.g., ["YouTube", "Twitter/X"]
 
       // Platform-specific rules
       instagram: {
@@ -177,10 +177,6 @@ export interface BrandKnowledgeSchema {
         community_engagement: boolean; // Active community management?
       };
 
-      line_oa?: {
-        broadcast_frequency: string;   // e.g., "2x per week"
-        allowed_content_types: string[];
-      };
     };
 
     // Marketing Calendar & Campaigns
@@ -201,30 +197,16 @@ export interface BrandKnowledgeSchema {
 
     // Automation Integration
     automation_needs: {
-      line_oa?: {
-        line_id: string;               // @line_id
-        webhook_url?: string;
-      };
-
       email_notification: {
         email: string;                 // Where to send notifications
         notification_triggers: string[]; // e.g., ["New order", "Customer inquiry"]
       };
 
-      google_sheets: {
-        content_log_id: string;        // Sheet ID for Content_Log
-        production_log_id: string;     // Sheet ID for Production_Log
-        analytics_sheet_id: string;    // Sheet ID for Analytics
-      };
-
-      webhooks: {
-        make_com_webhook?: string;     // Make.com integration
-        zapier_webhook?: string;       // Zapier integration
-        custom_webhooks: Array<{
-          name: string;
-          url: string;
-          trigger: string;
-        }>;
+      tool_stack: {
+        email_platform?: string;       // e.g., "Mailchimp", "Klaviyo"
+        crm?: string;                  // e.g., "HubSpot", "Salesforce"
+        scheduler?: string;            // e.g., "Buffer", "Hootsuite"
+        analytics?: string;            // e.g., "Google Analytics", "Meta Pixel"
       };
     };
   };
@@ -488,7 +470,7 @@ export const exampleBrandSchema: BrandKnowledgeSchema = {
 
     platform_strategy: {
       primary_platform: 'Instagram',
-      secondary_platforms: ['TikTok', 'Facebook', 'LINE OA'],
+      secondary_platforms: ['TikTok', 'Facebook', 'YouTube'],
 
       instagram: {
         post_frequency: '3-4x per week',
@@ -505,10 +487,6 @@ export const exampleBrandSchema: BrandKnowledgeSchema = {
         community_engagement: true
       },
 
-      line_oa: {
-        broadcast_frequency: '2x per week',
-        allowed_content_types: ['Promotions', 'Events', 'New menus']
-      }
     },
 
     marketing_calendar: {
@@ -531,31 +509,16 @@ export const exampleBrandSchema: BrandKnowledgeSchema = {
     },
 
     automation_needs: {
-      line_oa: {
-        line_id: '@artcoffee',
-        webhook_url: 'https://example.com/line/webhook'
-      },
-
       email_notification: {
         email: 'owner@artcoffee.com',
         notification_triggers: ['New order', 'Customer feedback', 'Event signup']
       },
 
-      google_sheets: {
-        content_log_id: 'SHEET_ID_1',
-        production_log_id: 'SHEET_ID_2',
-        analytics_sheet_id: 'SHEET_ID_3'
-      },
-
-      webhooks: {
-        make_com_webhook: 'https://hook.make.com/example',
-        custom_webhooks: [
-          {
-            name: 'Order Notification',
-            url: 'https://example.com/order',
-            trigger: 'on_new_order'
-          }
-        ]
+      tool_stack: {
+        email_platform: 'Mailchimp',
+        crm: 'HubSpot',
+        scheduler: 'Buffer',
+        analytics: 'Google Analytics'
       }
     }
   },

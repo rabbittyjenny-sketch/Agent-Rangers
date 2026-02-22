@@ -12,7 +12,6 @@ const BrandManager = lazy(() => import('./pages/BrandManager').then(m => ({ defa
 import Hero from './components/Hero';
 import AgentsGrid from './components/AgentsGrid';
 import Onboarding from './components/Onboarding';
-import CaptionFactoryUpload from './components/CaptionFactory';
 
 // Import services
 import { orchestratorEngine } from './services/orchestratorEngine';
@@ -21,7 +20,7 @@ import { databaseService } from './services/databaseService';
 
 const App = () => {
   const [currentView, setCurrentView] = useState('home');
-  // Views: home, dashboard, chat, tasks, brands, onboarding, legacy-hero, legacy-agents, caption-factory
+  // Views: home, dashboard, chat, tasks, brands, onboarding, legacy-hero, legacy-agents
 
   const [selectedCluster, setSelectedCluster] = useState(null);
   const [selectedAgent, setSelectedAgent] = useState(null);
@@ -168,9 +167,6 @@ const App = () => {
             masterContext={masterContext}
           />
         );
-
-      case 'caption-factory':
-        return <CaptionFactoryUpload />;
 
       default:
         return (

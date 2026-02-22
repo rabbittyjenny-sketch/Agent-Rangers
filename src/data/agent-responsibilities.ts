@@ -428,10 +428,10 @@ export const responsibilityMatrices: ResponsibilityMatrix[] = [
     cluster: 'growth',
     primaryResponsibilities: [
       'TCA Workflow Design',
-      'Tool Integration (Make.com, Zapier)',
-      'Content Scheduling Automation',
-      'Webhook Management',
-      'Batch Processing Setup'
+      'Tool Integration (Zapier, Mailchimp, CRM)',
+      'Email Marketing Automation',
+      'Social Media Scheduling',
+      'Process Bottleneck Analysis'
     ],
     dependsOn: [
       { agentId: 'campaign-planner', reason: 'ต้องรู้ Campaign Timeline ก่อนตั้งค่า Automation' },
@@ -445,9 +445,9 @@ export const responsibilityMatrices: ResponsibilityMatrix[] = [
     requiredInputs: [
       'Campaign Timeline & Calendar',
       'Brand Positioning & Strategy',
-      'Platform Credentials',
-      'Webhook Endpoints',
-      'Tool Integration Requirements'
+      'Current Tool Stack',
+      'Repetitive Task List',
+      'Team Capacity & Bottlenecks'
     ],
     expectedOutputs: [
       'TCA Workflow Configurations',

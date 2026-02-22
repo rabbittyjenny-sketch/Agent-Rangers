@@ -9,7 +9,6 @@ import { MasterContext } from '../data/intelligence';
 import { orchestratorEngine, RoutingResult, FactCheckResult } from './orchestratorEngine';
 import { databaseService, MessageRecord, AgentLearningRecord } from './databaseService';
 import { databaseContextService, getAgentContext, recordLearning } from './databaseContextService';
-import { automationService } from './automationService';
 
 export interface AIResponse {
   agentId: string;
@@ -206,7 +205,6 @@ class AIService {
         'narrative-designer': this.generateNarrativeDesignerResponse(userInput, context, dbContext),
         'content-creator': this.generateContentCreatorResponse(userInput, context, dbContext),
         'campaign-planner': this.generateCampaignResponse(userInput, context, dbContext),
-        'automation-specialist': this.generateAutomationResponse(userInput, context, dbContext),
         'analytics-master': this.generateAnalyticsMasterResponse(userInput, context, dbContext)
       };
       return agentResponses[agent.id] || 'Agent response not available';
@@ -356,8 +354,6 @@ class AIService {
       insight = `Content strategy framework generated (dual-mode)`;
     } else if (agentId === 'campaign-planner' && userInput.toLowerCase().includes('campaign')) {
       insight = `Campaign timeline and milestone mapping planned`;
-    } else if (agentId === 'automation-specialist' && userInput.toLowerCase().includes('automat')) {
-      insight = `Automation workflows configured and optimized`;
     } else if (agentId === 'analytics-master' && userInput.toLowerCase().includes('kpi')) {
       insight = `KPI dashboard and measurement framework designed`;
     }
@@ -629,7 +625,7 @@ STYLE VARIATIONS:
 Campaign Strategy - Double Digit Approach:
 
 🔴 Phase 1: Gain Friends (Days 1-10)
-   • Objective: สะสม Followers & LINE OA subscribers
+   • Objective: สะสม Followers & Subscribers
    • Ad Strategy: Lookalike Audience + Broad Targeting
    • Content Type: Entertainment + Educational
    • Budget: 30% of total
@@ -653,116 +649,6 @@ Content Mix (Diversify):
 📍 Community Engagement: 10%
 
 📌 Success Metric: Target 10-20% Conversion Rate`;
-  }
-
-  /**
-   * Automation Specialist Response Template
-   */
-  private generateAutomationResponse(input: string, context: MasterContext, dbContext?: any): string {
-    const isScheduling = input.toLowerCase().includes('schedule') || input.toLowerCase().includes('automat');
-    const isMakeCom = input.toLowerCase().includes('make.com') || input.toLowerCase().includes('webhook');
-
-    if (isScheduling) {
-      return `⚙️ Automation Setup สำหรับ ${context.brandNameTh}
-
-🎯 Automation Features Available:
-1️⃣ Content Factory Automation
-   • Auto-process submitted content
-   • Send to Make.com webhook
-   • Schedule: Every day at 9 AM
-   • Webhook: https://hook.us2.make.com/3kcyu1ygkc8fjv19193apv8oxfhd1c6h
-
-2️⃣ Caption Factory Automation
-   • Auto-generate captions from images
-   • Send to Make.com webhook
-   • Schedule: Every 6 hours
-   • Webhook: https://hook.us2.make.com/e7yel6e6t3ouyf8sv3dbni25nap685tf
-
-3️⃣ Posting Schedule
-   • Auto-post to Social Media
-   • Based on Campaign Calendar
-   • Timezone-aware scheduling
-   • Support: TikTok, Facebook, Instagram, YouTube
-
-⏰ Cron Expression Examples:
-   • "0 9 * * *" - Every day at 9:00 AM
-   • "0 */6 * * *" - Every 6 hours
-   • "0 9 * * 1-5" - Weekdays at 9:00 AM
-   • "0 17 * * *" - Every day at 5:00 PM
-
-📌 Setup Instructions:
-1. Tell me the cron schedule you want
-2. Choose: Content Factory, Caption Factory, or Posting Schedule
-3. I'll configure and activate the automation
-4. You can monitor execution logs in dashboard
-
-⚡ Current Status: ${automationService.getStatus().activeSchedules} active schedules`;
-    }
-
-    if (isMakeCom) {
-      return `🔌 Make.com Integration Guide สำหรับ ${context.brandNameTh}
-
-✅ Your Make.com Webhooks:
-
-🎬 Content Factory Workflow:
-   URL: https://hook.us2.make.com/3kcyu1ygkc8fjv19193apv8oxfhd1c6h
-   Purpose: Auto-process content submissions (knowledge, sales)
-   Expected Payload:
-   {
-     "user_email": "user@example.com",
-     "category": "knowledge", // or 'sales'
-     "platform": "TikTok",
-     "post_format": "Short Clip Video",
-     "raw_text": "Content description",
-     "file_asset": "/path/to/image.jpg"
-   }
-
-📝 Caption Factory Workflow:
-   URL: https://hook.us2.make.com/e7yel6e6t3ouyf8sv3dbni25nap685tf
-   Purpose: Auto-generate captions from images
-   Expected Payload:
-   {
-     "line_user_id": "U1234567890abc",
-     "image_data": "data:image/jpeg;base64,...",
-     "mood": "VIBRANT",
-     "multilingual_level": 50
-   }
-
-🛠️ Automation Features:
-✓ Automatic retry on failure (up to 3 attempts)
-✓ Exponential backoff: 5s, 10s, 20s
-✓ Request timeout: 10 seconds
-✓ Batch processing: Up to 100 items per cycle
-✓ Full logging and monitoring
-
-📊 Execution Monitoring:
-   • View past executions
-   • Check error logs
-   • Estimate next run time
-   • Pause/resume automations
-
-💡 Tips for Best Results:
-1. Keep Make.com webhook URLs active
-2. Test webhooks before scheduling
-3. Monitor execution logs weekly
-4. Adjust batch size if timeouts occur`;
-    }
-
-    return `⚙️ Automation Specialist Services สำหรับ ${context.brandNameTh}
-
-I can help you:
-✅ Set up automated content creation
-✅ Schedule posts to social media
-✅ Integrate with Make.com workflows
-✅ Monitor automation execution logs
-✅ Handle failures with auto-retry
-
-What would you like to automate?
-• "schedule content factory" - Auto-process content submissions
-• "schedule caption factory" - Auto-generate captions
-• "make.com setup" - Configure webhook integration
-• "automation status" - Check current automations
-• "stop automations" - Disable all automations`;
   }
 
   /**

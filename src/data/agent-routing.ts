@@ -177,12 +177,16 @@ export const jobClassification = {
       'automation',
       'workflow',
       'schedule',
-      'make.com',
-      'webhook',
-      'cron',
+      'email',
+      'crm',
       'batch',
       'posting',
-      'integration'
+      'integration',
+      'zapier',
+      'mailchimp',
+      'process',
+      'trigger',
+      'bottleneck'
     ],
     mustNotOverlapWith: ['campaign-planner']
   },
