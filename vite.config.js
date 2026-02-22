@@ -10,9 +10,9 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
 
-    // Inject env vars as process.env.X so existing code works without changes
+    // NOTE: ANTHROPIC_API_KEY is intentionally NOT exposed to the browser bundle.
+    // It is used only in the Vite dev-server proxy above (server-side).
     define: {
-      'process.env.ANTHROPIC_API_KEY': JSON.stringify(env.ANTHROPIC_API_KEY || ''),
       'process.env.CLAUDE_MODEL': JSON.stringify(env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001'),
       'process.env.DATABASE_URL': JSON.stringify(env.DATABASE_URL || ''),
     },
@@ -21,6 +21,21 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       open: true,
       host: true,
+      proxy: {
+        '/api/anthropic': {
+          target: 'https://api.anthropic.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/anthropic/, ''),
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq) => {
+              // Inject API key server-side — never exposed to browser
+              proxyReq.setHeader('x-api-key', env.ANTHROPIC_API_KEY || '');
+              proxyReq.setHeader('anthropic-version', '2023-06-01');
+              proxyReq.removeHeader('origin');
+            });
+          },
+        },
+      },
     },
 
     build: {

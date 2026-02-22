@@ -248,7 +248,8 @@ export const factCheckValidators: FactCheckValidator[] = [
   {
     name: 'USP Consistency',
     check: (context: MasterContext, claim: string) => {
-      const uspLower = context.coreUSP.toLowerCase();
+      const uspArray = Array.isArray(context.coreUSP) ? context.coreUSP : [context.coreUSP];
+      const uspLower = uspArray.join(' ').toLowerCase();
       const claimLower = claim.toLowerCase();
 
       // Check if claim contradicts known USP

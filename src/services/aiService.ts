@@ -67,7 +67,9 @@ class AIService {
 
     // Get brandId from request or use masterContext
     const brandId = request.brandId || this.masterContext?.brandId || '1';
-    const numericBrandId = typeof brandId === 'string' ? parseInt(brandId) : brandId || 1;
+    // Keep as string - databaseContextService supports string brandId
+    // Only convert to number if it's purely numeric
+    const numericBrandId = /^\d+$/.test(String(brandId)) ? parseInt(String(brandId)) : brandId;
 
     // Save user message to database (non-blocking)
     const userMessage: MessageRecord = {
@@ -222,12 +224,8 @@ class AIService {
     context: MasterContext,
     dbContext?: any
   ): Promise<string> {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    const model = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
-
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY not found in environment variables');
-    }
+    // Model from env (injected by Vite at build time)
+    const model = (typeof process !== 'undefined' && process.env?.CLAUDE_MODEL) || 'claude-haiku-4-5-20251001';
 
     // Build context message with Brand Knowledge Template (3-bucket style)
     const contextInfo = this.buildContextMessage(agent, context, dbContext);
@@ -240,13 +238,12 @@ class AIService {
       }
     ];
 
-    // Call Claude API via fetch
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Route through Vite dev-server proxy (/api/anthropic → https://api.anthropic.com)
+    // API key is injected SERVER-SIDE in vite.config.js — never exposed to the browser bundle
+    const response = await fetch('/api/anthropic/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
         model,

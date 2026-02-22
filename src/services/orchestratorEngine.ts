@@ -455,7 +455,7 @@ export class OrchestratorEngine {
     // Check for consistency with brand USP
     if (!this.isConsistentWithUSP(output)) {
       result.warnings.push('⚠️ ผลลัพธ์อาจไม่ตรงกับ USP ของแบรนด์');
-      result.recommendations.push(`✓ ให้เน้น: "${this.masterContext.coreUSP}"`);
+      result.recommendations.push(`✓ ให้เน้น: "${Array.isArray(this.masterContext.coreUSP) ? this.masterContext.coreUSP.join(", ") : this.masterContext.coreUSP}"`);
     }
 
     return result;
@@ -544,7 +544,8 @@ export class OrchestratorEngine {
   private isConsistentWithUSP(text: string): boolean {
     if (!this.masterContext) return true;
 
-    const usp = this.masterContext.coreUSP.toLowerCase();
+    const uspArray = Array.isArray(this.masterContext.coreUSP) ? this.masterContext.coreUSP : [this.masterContext.coreUSP];
+    const usp = uspArray.join(' ').toLowerCase();
     const textLower = text.toLowerCase();
 
     // Simple check: if USP mentions "eco" and text mentions "plastic", it's inconsistent
