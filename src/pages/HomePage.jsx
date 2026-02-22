@@ -302,19 +302,13 @@ export const HomePage = ({ onSelectCluster, onStartOnboarding, isLoggedIn, onOpe
           className="mb-8"
         >
           <div
-            className="inline-flex items-center gap-2 px-4 py-2.5"
-            style={{
-              background: '#EFF2F9',
-              borderRadius: 16,
-              boxShadow: 'inset 3px 3px 8px #d1d9e6, inset -3px -3px 8px #ffffff',
-              border: '1px solid rgba(255,255,255,0.5)',
-              minWidth: 220,
-            }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-white/[0.07]"
+            style={{ background:'rgba(255,255,255,0.05)', minWidth: 220 }}
           >
-            <svg className="w-4 h-4 flex-shrink-0" style={{ color: '#94a3b8' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 flex-shrink-0 text-white/30" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>
-            <span className="text-sm font-en" style={{ color: '#94a3b8' }}>Search agents...</span>
+            <span className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Search agents...</span>
           </div>
         </motion.div>
 

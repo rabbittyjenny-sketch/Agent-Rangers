@@ -1,4 +1,11 @@
 /* ── iDEAS365 x Social Factory — Global CSS ───────────────────────── */
+
+html, body {
+  background: #0D1117 !important;
+  color: white;
+  margin: 0;
+  padding: 0;
+}
 /* Neumorphism Soft: bg #EFF2F9, shadow #d1d9e6 / #ffffff              */
 /* Font: Sarabun (TH) + Inter (EN) global enforcement                   */
 
