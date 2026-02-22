@@ -63,17 +63,6 @@ export interface DesignAssetRecord {
   generatedBy: string;
 }
 
-export interface AutomationRecord {
-  id?: number;
-  brandId: number;
-  toolName: string;
-  toolType: string;
-  isActive: boolean;
-  configuration?: Record<string, any>;
-  scheduleFrequency?: string;
-  automationScript?: string;
-}
-
 export interface MessageRecord {
   id?: number;
   brandId: number;
@@ -99,20 +88,6 @@ export interface AgentLearningRecord {
   actionable: boolean;
 }
 
-export interface VideoTaskRecord {
-  id?: number;
-  brandId: number;
-  taskType: 'art' | 'script';
-  videoTitle?: string;
-  scriptContent?: string;
-  artPrompt?: string;
-  platform?: string;
-  duration?: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  videoUrl?: string;
-  generatedBy: string;
-}
-
 export interface CampaignRecord {
   id?: number;
   brandId: number;
@@ -126,38 +101,6 @@ export interface CampaignRecord {
   status: 'draft' | 'scheduled' | 'active' | 'completed';
   budget?: number;
   estimatedReach?: number;
-}
-
-/**
- * Video Production Records - For tracking video generation
- */
-export interface VideoProductionLog {
-  id?: number;
-  contentId: string; // Item ID from Content_Log
-  userEmail: string;
-  rawText: string;
-  finalScript: string;
-  generatedBy: string;
-  platform: string;
-  videoUrl: string; // YouTube/TikTok URL
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  errorMessage?: string;
-  processingTimeMs?: number;
-  createdAt?: Date;
-  completedAt?: Date;
-}
-
-export interface ContentFactoryRecord {
-  id?: number;
-  mainCategory: string;
-  userEmail: string;
-  category: string; // 'Short Clip Video', etc.
-  postFormat: string;
-  itemId: string;
-  rawText: string;
-  platform: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  createdAt?: Date;
 }
 
 class DatabaseService {
@@ -358,26 +301,6 @@ class DatabaseService {
   }
 
   /**
-   * Save video task
-   */
-  async saveVideoTask(task: VideoTaskRecord): Promise<VideoTaskRecord> {
-    try {
-      if (!this.isReady) {
-        const key = `${this.localStoragePrefix}video_${task.brandId}_${Date.now()}`;
-        const data = { ...task, id: Date.now(), createdAt: new Date(), updatedAt: new Date() };
-        localStorage.setItem(key, JSON.stringify(data));
-        return data;
-      }
-
-      // TODO: Implement database insert
-      return task;
-    } catch (error) {
-      console.error('Error saving video task:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Save campaign
    */
   async saveCampaign(campaign: CampaignRecord): Promise<CampaignRecord> {
@@ -393,218 +316,6 @@ class DatabaseService {
       return campaign;
     } catch (error) {
       console.error('Error saving campaign:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Save Caption Factory submission
-   */
-  async saveCaptionFactorySubmission(submission: CaptionFactorySubmission): Promise<CaptionFactorySubmission> {
-    try {
-      if (!this.isReady) {
-        const key = `${this.localStoragePrefix}caption_factory_${submission.lineUserId}_${Date.now()}`;
-        const data = { ...submission, id: Date.now(), createdAt: new Date(), updatedAt: new Date() };
-        localStorage.setItem(key, JSON.stringify(data));
-        return data;
-      }
-
-      // TODO: Implement database insert when Neon is ready
-      return submission;
-    } catch (error) {
-      console.error('Error saving caption factory submission:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get pending Caption Factory submissions
-   */
-  async getPendingCaptionSubmissions(brandId?: number, limit: number = 10): Promise<CaptionFactorySubmission[]> {
-    try {
-      if (!this.isReady) {
-        const submissions: CaptionFactorySubmission[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key?.includes(`${this.localStoragePrefix}caption_factory_`)) {
-            const data = localStorage.getItem(key);
-            if (data) {
-              const submission = JSON.parse(data);
-              if (!brandId || submission.brandId === brandId) {
-                submissions.push(submission);
-              }
-            }
-          }
-        }
-        return submissions.slice(-limit);
-      }
-
-      // TODO: Implement database query with status = 'draft'
-      return [];
-    } catch (error) {
-      console.error('Error getting pending caption submissions:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Update Caption Factory submission status
-   */
-  async updateCaptionSubmissionStatus(submissionId: number, status: string, generatedCaption?: any): Promise<void> {
-    try {
-      if (!this.isReady) {
-        // Update in localStorage
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key?.includes(`${this.localStoragePrefix}caption_factory_`)) {
-            const data = localStorage.getItem(key);
-            if (data) {
-              const submission = JSON.parse(data);
-              if (submission.id === submissionId) {
-                submission.status = status;
-                if (generatedCaption) {
-                  submission.generatedCaption = generatedCaption.text;
-                  submission.generatedCaptionTh = generatedCaption.textTh;
-                  submission.hashtags = generatedCaption.hashtags;
-                  submission.moodAnalysis = generatedCaption.analysis;
-                }
-                submission.updatedAt = new Date();
-                localStorage.setItem(key, JSON.stringify(submission));
-                return;
-              }
-            }
-          }
-        }
-      }
-
-      // TODO: Implement database update when Neon is ready
-    } catch (error) {
-      console.error('Error updating caption submission status:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Save video production log
-   */
-  async saveVideoProductionLog(log: VideoProductionLog): Promise<VideoProductionLog> {
-    try {
-      if (!this.isReady) {
-        const key = `${this.localStoragePrefix}video_production_${log.contentId}_${Date.now()}`;
-        const data = {
-          ...log,
-          id: Date.now(),
-          createdAt: new Date()
-        };
-        localStorage.setItem(key, JSON.stringify(data));
-        return data;
-      }
-
-      // TODO: Implement database insert when Neon is ready
-      return log;
-    } catch (error) {
-      console.error('Error saving video production log:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get video production logs by user
-   */
-  async getVideoProductionLogs(userEmail?: string, limit: number = 50): Promise<VideoProductionLog[]> {
-    try {
-      if (!this.isReady) {
-        const logs: VideoProductionLog[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key?.includes(`${this.localStoragePrefix}video_production_`)) {
-            const data = localStorage.getItem(key);
-            if (data) {
-              const log = JSON.parse(data);
-              if (!userEmail || log.userEmail === userEmail) {
-                logs.push(log);
-              }
-            }
-          }
-        }
-        return logs.sort((a, b) =>
-          new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-        ).slice(0, limit);
-      }
-
-      // TODO: Implement database query
-      return [];
-    } catch (error) {
-      console.error('Error fetching video production logs:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Get pending video production tasks
-   */
-  async getPendingVideoTasks(): Promise<VideoProductionLog[]> {
-    try {
-      if (!this.isReady) {
-        const tasks: VideoProductionLog[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key?.includes(`${this.localStoragePrefix}video_production_`)) {
-            const data = localStorage.getItem(key);
-            if (data) {
-              const log = JSON.parse(data);
-              if (log.status === 'pending' || log.status === 'processing') {
-                tasks.push(log);
-              }
-            }
-          }
-        }
-        return tasks;
-      }
-
-      // TODO: Implement database query
-      return [];
-    } catch (error) {
-      console.error('Error fetching pending video tasks:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Update video production log status
-   */
-  async updateVideoProductionStatus(
-    contentId: string,
-    status: 'pending' | 'processing' | 'completed' | 'failed',
-    videoUrl?: string,
-    errorMessage?: string
-  ): Promise<void> {
-    try {
-      if (!this.isReady) {
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key?.includes(`${this.localStoragePrefix}video_production_`)) {
-            const data = localStorage.getItem(key);
-            if (data) {
-              const log = JSON.parse(data);
-              if (log.contentId === contentId) {
-                log.status = status;
-                if (videoUrl) log.videoUrl = videoUrl;
-                if (errorMessage) log.errorMessage = errorMessage;
-                if (status === 'completed') {
-                  log.completedAt = new Date();
-                }
-                localStorage.setItem(key, JSON.stringify(log));
-                return;
-              }
-            }
-          }
-        }
-      }
-
-      // TODO: Implement database update
-    } catch (error) {
-      console.error('Error updating video production status:', error);
       throw error;
     }
   }

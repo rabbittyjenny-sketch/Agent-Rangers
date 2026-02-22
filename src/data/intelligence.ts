@@ -36,10 +36,6 @@ export interface MasterContext {
   toneOfVoice: 'formal' | 'casual' | 'playful' | 'professional' | 'luxury';
   forbiddenWords?: string[]; // Words/phrases to avoid
   brandHashtags?: string[]; // Signature hashtags
-  automationNeeds?: {
-    lineOa?: string;
-    email?: string;
-  };
 
   // === METADATA ===
   createdAt: string;
@@ -320,10 +316,6 @@ export const sampleMasterContexts: MasterContext[] = [
     toneOfVoice: 'casual',
     forbiddenWords: ['Commercial', 'Corporate jargon', 'Overly formal Thai language'],
     brandHashtags: ['#ArtCoffeeStudio', '#CreativeSpace', '#CommunityFirst'],
-    automationNeeds: {
-      lineOa: '@artcoffeestudio',
-      email: 'marketing@artcoffee.com'
-    },
     createdAt: new Date().toISOString(),
     lastUpdated: new Date().toISOString()
   },
@@ -356,10 +348,6 @@ export const sampleMasterContexts: MasterContext[] = [
     toneOfVoice: 'professional',
     forbiddenWords: ['Fast fashion', 'Cheap', 'Mass-produced'],
     brandHashtags: ['#SustainableFashion', '#ThaiPride', '#EcoFashion'],
-    automationNeeds: {
-      lineOa: '@siamfashion',
-      email: 'hello@siamfashionboutique.com'
-    },
     createdAt: new Date().toISOString(),
     lastUpdated: new Date().toISOString()
   },
@@ -392,10 +380,6 @@ export const sampleMasterContexts: MasterContext[] = [
     toneOfVoice: 'playful',
     forbiddenWords: ['Cheap dessert', 'Low quality', 'Artificial'],
     brandHashtags: ['#SweetDelivery', '#DessertLover', '#CelebrationMode'],
-    automationNeeds: {
-      lineOa: '@sweetdeliveryth',
-      email: 'hello@sweetdelivery.co.th'
-    },
     createdAt: new Date().toISOString(),
     lastUpdated: new Date().toISOString()
   }
@@ -528,7 +512,7 @@ export const taskSpecificPrompts: TaskSpecificPrompt[] = [
         question: 'Where should the automation output appear?',
         questionTh: 'คุณอยากให้ผลลัพธ์ไปโผล่ที่ไหน?',
         type: 'select',
-        options: ['Email', 'LINE OA', 'Google Sheets', 'Webhook (Make.com)', 'Dashboard'],
+        options: ['Email', 'Dashboard', 'Slack', 'SMS'],
         required: true
       },
       {
@@ -544,7 +528,7 @@ export const taskSpecificPrompts: TaskSpecificPrompt[] = [
         question: 'Should we notify you when automation completes?',
         questionTh: 'ต้องการแจ้งเตือนเมื่อทำงานเสร็จไหม?',
         type: 'select',
-        options: ['Yes - Email', 'Yes - LINE', 'No notification needed'],
+        options: ['Yes - Email', 'Yes - SMS', 'No notification needed'],
         required: false
       }
     ]
@@ -566,7 +550,7 @@ export const taskSpecificPrompts: TaskSpecificPrompt[] = [
         question: 'Which platforms do you want to focus on?',
         questionTh: 'ต้องการเน้นแพลตฟอร์มไหนบ้าง?',
         type: 'multiselect',
-        options: ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'LINE OA', 'Twitter/X'],
+        options: ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'Twitter/X'],
         required: true
       }
     ]

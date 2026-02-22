@@ -12,7 +12,6 @@ const BrandManager = lazy(() => import('./pages/BrandManager').then(m => ({ defa
 import Hero from './components/Hero';
 import AgentsGrid from './components/AgentsGrid';
 import Onboarding from './components/Onboarding';
-import CaptionFactoryUpload from './components/CaptionFactory';
 
 // Import services
 import { orchestratorEngine } from './services/orchestratorEngine';
@@ -21,7 +20,7 @@ import { databaseService } from './services/databaseService';
 
 const App = () => {
   const [currentView, setCurrentView] = useState('home');
-  // Views: home, dashboard, chat, tasks, brands, onboarding, legacy-hero, legacy-agents, caption-factory
+  // Views: home, dashboard, chat, tasks, brands, onboarding, legacy-hero, legacy-agents
 
   const [selectedCluster, setSelectedCluster] = useState(null);
   const [selectedAgent, setSelectedAgent] = useState(null);
@@ -169,9 +168,6 @@ const App = () => {
           />
         );
 
-      case 'caption-factory':
-        return <CaptionFactoryUpload />;
-
       default:
         return (
           <HomePage
@@ -267,156 +263,7 @@ const App = () => {
         </p>
       </footer>
 
-      {/* Global Styles */}
-      <style>{`
-        * {
-          --c-magenta: #FF1493;
-          --c-cyan: #00CED1;
-          --c-yellow: #FFD700;
-          --c-green: #00FF7F;
-          --c-sapphire: #5E9BEB;
-          --shadow-hard: 0 4px 12px rgba(0, 0, 0, 0.12);
-          --shadow-hard-hover: 0 8px 24px rgba(0, 0, 0, 0.16);
-
-          /* Dark mode variables (prepared for future use) */
-          --dm-bg: #1a1a1a;
-          --dm-surface: #2d2d2d;
-          --dm-text: #ffffff;
-          --dm-text-secondary: #b0b0b0;
-        }
-
-        .neo-btn {
-          background: white;
-          border: 2px solid #000;
-          padding: 12px 20px;
-          border-radius: 8px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
-          font-family: inherit;
-          font-size: 14px;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .neo-btn:hover {
-          transform: translate(-2px, -2px);
-          box-shadow: var(--shadow-hard-hover);
-        }
-
-        .neo-btn:active {
-          transform: translate(0, 0);
-        }
-
-        .neo-box {
-          background: white;
-          border: 2px solid #000;
-          border-radius: 8px;
-          padding: 20px;
-          box-shadow: var(--shadow-hard);
-        }
-
-        .app-wrapper {
-          display: flex;
-          flex-direction: column;
-          min-height: 100vh;
-          background: #fafafa;
-        }
-
-        .app-header {
-          background: white;
-          border-bottom: 2px solid #000;
-          padding: 15px 20px;
-          position: sticky;
-          top: 0;
-          z-index: 100;
-        }
-
-        .header-content {
-          max-width: 1400px;
-          margin: 0 auto;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .brand-logo {
-          display: flex;
-          align-items: center;
-        }
-
-        .header-nav {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .header-nav-buttons {
-          display: flex;
-          gap: 10px;
-        }
-
-        .context-badge {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 16px;
-          background: #f0f0f0;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 600;
-        }
-
-        .badge-label {
-          opacity: 0.6;
-        }
-
-        .badge-value {
-          color: #FF1493;
-        }
-
-        .app-main {
-          flex: 1;
-          overflow-y: auto;
-        }
-
-        .app-footer {
-          background: white;
-          border-top: 2px solid #000;
-          padding: 20px;
-          text-align: center;
-          font-size: 12px;
-          color: #666;
-        }
-
-        .app-footer p {
-          margin: 5px 0;
-        }
-
-        @media (max-width: 768px) {
-          .header-content {
-            flex-direction: column;
-            gap: 10px;
-          }
-
-          .header-nav {
-            width: 100%;
-            justify-content: center;
-            flex-wrap: wrap;
-          }
-
-          .header-nav-buttons {
-            flex-wrap: wrap;
-            justify-content: center;
-          }
-
-          .neo-btn {
-            font-size: 11px;
-            padding: 6px 12px;
-          }
-        }
-      `}</style>
+      {/* Styles are in App.css */}
     </div>
   );
 };

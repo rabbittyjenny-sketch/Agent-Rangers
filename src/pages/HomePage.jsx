@@ -19,32 +19,31 @@ export const HomePage = ({ onSelectCluster, onStartOnboarding, isLoggedIn }) => 
 
   const clusters = [
     {
-      id: 'data',
-      name: 'Data Intelligence',
-      icon: 'Database',
-      description: 'Analyze brand data and insights',
-      agentCount: 5,
-    },
-    {
-      id: 'network',
-      name: 'Social Network',
-      icon: 'Network',
-      description: 'Manage multi-channel presence',
-      agentCount: 8,
-    },
-    {
-      id: 'analytics',
-      name: 'Performance Analytics',
+      id: 'strategy',
+      name: 'Strategy Cluster',
+      nameTh: 'วางกลยุทธ์',
       icon: 'BarChart3',
-      description: 'Track metrics and KPIs',
-      agentCount: 6,
+      description: 'วิเคราะห์ตลาด · กำหนดตำแหน่งแบรนด์ · เข้าใจลูกค้า',
+      agentCount: 3,
+      color: '#FF6B6B',
     },
     {
-      id: 'automation',
-      name: 'Content Automation',
+      id: 'creative',
+      name: 'Creative Cluster',
+      nameTh: 'สร้างสรรค์',
+      icon: 'Sparkles',
+      description: 'Visual System · Brand Voice · Brand Story',
+      agentCount: 3,
+      color: '#FF8FAB',
+    },
+    {
+      id: 'growth',
+      name: 'Growth Cluster',
+      nameTh: 'ขับเคลื่อนการเติบโต',
       icon: 'Zap',
-      description: 'Generate and schedule content',
-      agentCount: 7,
+      description: 'คอนเทนต์ · Campaign · Automation · Analytics',
+      agentCount: 4,
+      color: '#00CED1',
     },
   ];
 
@@ -117,8 +116,8 @@ export const HomePage = ({ onSelectCluster, onStartOnboarding, isLoggedIn }) => 
               {isLoggedIn ? 'Your Agent Clusters' : 'Explore Agent Clusters'}
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {clusters.map((cluster, idx) => (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {clusters.map((cluster) => (
                 <motion.div
                   key={cluster.id}
                   variants={itemVariants}
@@ -128,13 +127,21 @@ export const HomePage = ({ onSelectCluster, onStartOnboarding, isLoggedIn }) => 
                     interactive
                     onClick={() => onSelectCluster(cluster.id)}
                     className="h-full cursor-pointer"
+                    style={{ borderTop: `4px solid ${cluster.color}` }}
                   >
                     <div className="flex flex-col gap-3">
-                      <div className="text-[#5E9BEB] text-3xl">⚡</div>
-                      <h3 className="font-semibold text-gray-900 font-sarabun">
-                        {cluster.name}
-                      </h3>
-                      <p className="text-sm text-gray-600 line-clamp-2 font-sarabun">
+                      <div style={{ color: cluster.color, fontSize: 28 }}>
+                        {cluster.id === 'strategy' ? '📊' : cluster.id === 'creative' ? '🎨' : '🚀'}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 font-sarabun">
+                          {cluster.name}
+                        </h3>
+                        <p className="text-xs font-sarabun" style={{ color: cluster.color }}>
+                          {cluster.nameTh}
+                        </p>
+                      </div>
+                      <p className="text-sm text-gray-600 font-sarabun">
                         {cluster.description}
                       </p>
                       <div className="flex items-center justify-between pt-2 border-t border-gray-200 text-xs text-gray-500">
