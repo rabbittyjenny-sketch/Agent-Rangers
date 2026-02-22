@@ -104,7 +104,7 @@ export const Dashboard = ({ clusterId, onBack, onSelectAgent, masterContext }) =
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               width: '100%', padding: '10px 14px 10px 40px',
-              border: '2px solid #e0e0e0', borderRadius: 8,
+              border: '1.5px solid #E5E7EB', borderRadius: 8,
               fontSize: 14, outline: 'none', background: 'white',
               boxSizing: 'border-box',
             }}
@@ -127,13 +127,14 @@ export const Dashboard = ({ clusterId, onBack, onSelectAgent, masterContext }) =
                 style={{
                   padding: '8px 18px',
                   borderRadius: 8,
-                  border: `2px solid ${isActive ? (cfg?.color || '#111') : '#e0e0e0'}`,
+                  border: `1.5px solid ${isActive ? (cfg?.color || '#5E9BEB') : '#E5E7EB'}`,
                   background: isActive ? (cfg?.bg || '#f0f0f0') : 'white',
-                  color: isActive ? (cfg?.color || '#111') : '#666',
+                  color: isActive ? (cfg?.color || '#333') : '#666',
                   fontWeight: isActive ? 700 : 500,
                   cursor: 'pointer',
                   fontSize: 13,
                   transition: 'all 0.2s',
+                  boxShadow: isActive ? `0 2px 8px ${cfg?.color || '#5E9BEB'}22` : 'none',
                 }}
               >
                 {c === 'all' ? '🌐 ทั้งหมด' : `${cfg.label} — ${cfg.labelTh}`}
@@ -187,7 +188,8 @@ export const Dashboard = ({ clusterId, onBack, onSelectAgent, masterContext }) =
                 onClick={() => onSelectAgent(agent.id)}
                 style={{
                   background: 'white',
-                  border: `2px solid ${cfg.border || '#e0e0e0'}`,
+                  border: '1px solid #F0F0F0',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
                   borderRadius: 12,
                   padding: 20,
                   cursor: 'pointer',
@@ -275,8 +277,8 @@ export const Dashboard = ({ clusterId, onBack, onSelectAgent, masterContext }) =
                       key={cap}
                       style={{
                         fontSize: 10, padding: '3px 8px',
-                        background: '#f5f5f5', color: '#555',
-                        borderRadius: 4, border: '1px solid #e0e0e0',
+                        background: '#F8F9FC', color: '#666',
+                        borderRadius: 4, border: '1px solid #EBEBEB',
                       }}
                     >
                       {cap}
