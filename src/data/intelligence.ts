@@ -208,35 +208,35 @@ export const clusterKnowledge = {
 // Routing Keywords Mapping
 export const routingKeywords = {
   strategy: [
-    // Market Analyst
+    // Market Analyzer
     'SWOT', 'competitor', 'market', 'gap', 'opportunity', 'trend',
     'analysis', 'research', 'customer behavior', 'audience insight',
-    // Business Planner
+    // Positioning Strategist
     'cost', 'pricing', 'budget', 'plan', 'financial', 'ROI', 'break-even',
     'expense', 'investment', 'profit', 'margin',
-    // Insights Agent
+    // Customer Insight Specialist
     'KPI', 'analytics', 'performance', 'metrics', 'report', 'dashboard',
     'insight', 'data', 'forecast', 'projection'
   ],
   creative: [
-    // Brand Builder
+    // Brand Voice Architect
     'brand', 'identity', 'mood', 'tone', 'personality', 'value', 'voice',
     'positioning', 'guidelines',
-    // Design Agent
+    // Visual Strategist
     'design', 'logo', 'UI', 'UX', 'visual', 'color', 'palette', 'typography',
     'layout', 'landing page', 'website', 'template',
-    // Video Generator (Art)
+    // Narrative Designer
     'video', 'theme', 'concept', 'visual', 'story', 'motion', 'animation',
     'showroom', 'media'
   ],
   growth: [
-    // Caption Creator
+    // Content Creator (Caption Mode)
     'caption', 'content', 'copy', 'text', 'multilingual', 'emoji', 'CTA',
     'hashtag', 'style', 'emotion',
     // Campaign Planner
     'campaign', 'calendar', 'schedule', 'plan', 'promotion', '30 days',
     'content strategy', 'posting schedule', 'viral',
-    // Video Generator (Script)
+    // Content Creator (Script Mode)
     'script', 'production', 'trending', 'viral', 'live stream', 'editing',
     'concept', 'direction'
   ]

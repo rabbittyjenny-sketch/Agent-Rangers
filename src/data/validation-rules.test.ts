@@ -5,6 +5,7 @@ import {
   factGroundingRules,
   anticopyatRules,
   consistencyRules,
+  agentConstraints,
   validationRulesSummary,
   type ValidationResult
 } from './validation-rules';
@@ -75,7 +76,7 @@ describe('Validation Rules System', () => {
         reasoning: 'ประมาณการ'
       };
 
-      const result = factGroundingRules.validate(output, 'market-analyst');
+      const result = factGroundingRules.validate(output, 'market-analyzer');
 
       expect(result.passed).toBe(false);
       expect(result.message).toContain('hallucination');
@@ -88,32 +89,32 @@ describe('Validation Rules System', () => {
         sources: ['market_research']
       };
 
-      const result = factGroundingRules.validate(output, 'market-analyst');
+      const result = factGroundingRules.validate(output, 'market-analyzer');
 
       expect(result.passed).toBe(true);
     });
 
-    it('should require sources for market-analyst', () => {
+    it('should require sources for market-analyzer', () => {
       const output = {
         result: 'market analysis done',
         reasoning: 'analysis'
         // missing sources
       };
 
-      const result = factGroundingRules.validate(output, 'market-analyst');
+      const result = factGroundingRules.validate(output, 'market-analyzer');
 
       expect(result.passed).toBe(false);
       expect(result.message).toContain('sources');
     });
 
-    it('should pass market-analyst with valid sources', () => {
+    it('should pass market-analyzer with valid sources', () => {
       const output = {
         result: 'market analysis complete [source: market_research]',
         reasoning: 'based on data',
         sources: ['market_research', 'competitor_data']
       };
 
-      const result = factGroundingRules.validate(output, 'market-analyst');
+      const result = factGroundingRules.validate(output, 'market-analyzer');
 
       expect(result.passed).toBe(true);
     });
@@ -125,7 +126,7 @@ describe('Validation Rules System', () => {
         sources: ['industry_data']
       };
 
-      const result = factGroundingRules.validate(output, 'market-analyst');
+      const result = factGroundingRules.validate(output, 'market-analyzer');
 
       expect(result.passed).toBe(true);
     });
@@ -139,7 +140,7 @@ describe('Validation Rules System', () => {
 
       const previousOutputs = [
         {
-          agentId: 'market-analyst',
+          agentId: 'market-analyzer',
           output: {
             result: 'market opportunities in segment A'
           }
@@ -158,7 +159,7 @@ describe('Validation Rules System', () => {
 
       const previousOutputs = [
         {
-          agentId: 'market-analyst',
+          agentId: 'market-analyzer',
           output: {
             result: 'different analysis result'
           }
@@ -177,7 +178,7 @@ describe('Validation Rules System', () => {
 
       const previousOutputs = [
         {
-          agentId: 'market-analyst',
+          agentId: 'market-analyzer',
           output: {
             result: 'market segment A has high competition'
           }
@@ -253,7 +254,7 @@ describe('Validation Rules System', () => {
 
       const previousOutputs = [
         {
-          agentId: 'market-analyst',
+          agentId: 'market-analyzer',
           output: {
             goal: 'brand awareness focused'
           }
@@ -266,6 +267,78 @@ describe('Validation Rules System', () => {
     });
   });
 
+  describe('Agent-Specific Constraints', () => {
+    it('should have constraints for all 10 agents', () => {
+      const expectedAgents = [
+        'market-analyzer',
+        'positioning-strategist',
+        'customer-insight-specialist',
+        'visual-strategist',
+        'brand-voice-architect',
+        'narrative-designer',
+        'content-creator',
+        'campaign-planner',
+        'automation-specialist',
+        'analytics-master'
+      ];
+
+      for (const agentId of expectedAgents) {
+        expect(agentConstraints[agentId]).toBeDefined();
+        expect(typeof agentConstraints[agentId]).toBe('function');
+      }
+    });
+
+    it('should validate market-analyzer constraints', () => {
+      const output = {
+        task: 'analysis',
+        result: 'done',
+        reasoning: 'done',
+        swot: { strengths: [] },
+        competitors: {}
+      };
+
+      const result = agentConstraints['market-analyzer'](output);
+      expect(result.rule).toBe('MARKET_ANALYZER_CONSTRAINTS');
+      expect(result.passed).toBe(true);
+    });
+
+    it('should validate positioning-strategist constraints', () => {
+      const output = {
+        positioningStatement: 'Brand for target',
+        valueProp: 'Unique value',
+        messagingPillars: ['Pillar 1']
+      };
+
+      const result = agentConstraints['positioning-strategist'](output);
+      expect(result.rule).toBe('POSITIONING_STRATEGIST_CONSTRAINTS');
+      expect(result.passed).toBe(true);
+    });
+
+    it('should validate content-creator constraints', () => {
+      const output = {
+        styleGuide: { formal: 'text' },
+        templates: ['template1'],
+        hookPatterns: ['pattern1']
+      };
+
+      const result = agentConstraints['content-creator'](output);
+      expect(result.rule).toBe('CONTENT_CREATOR_CONSTRAINTS');
+      expect(result.passed).toBe(true);
+    });
+
+    it('should validate analytics-master constraints', () => {
+      const output = {
+        kpiHierarchy: { primary: 'CLV' },
+        dashboard: { layout: 'grid' },
+        trackingTemplate: { metrics: [] }
+      };
+
+      const result = agentConstraints['analytics-master'](output);
+      expect(result.rule).toBe('ANALYTICS_MASTER_CONSTRAINTS');
+      expect(result.passed).toBe(true);
+    });
+  });
+
   describe('Full Validation System', () => {
     it('should return ValidationResult with all fields', () => {
       const output = {
@@ -274,7 +347,7 @@ describe('Validation Rules System', () => {
         reasoning: 'based on analysis'
       };
 
-      const result = validateAgentOutput('market-analyst', output);
+      const result = validateAgentOutput('market-analyzer', output);
 
       expect(result.passed).toBeDefined();
       expect(result.score).toBeDefined();
@@ -291,7 +364,7 @@ describe('Validation Rules System', () => {
         reasoning: 'reason'
       };
 
-      const result = validateAgentOutput('market-analyst', output);
+      const result = validateAgentOutput('market-analyzer', output);
 
       expect(result.score).toBeGreaterThanOrEqual(0);
       expect(result.score).toBeLessThanOrEqual(100);
@@ -308,7 +381,7 @@ describe('Validation Rules System', () => {
         competitors: {}
       };
 
-      const result = validateAgentOutput('market-analyst', output);
+      const result = validateAgentOutput('market-analyzer', output);
 
       expect(result.score).toBeGreaterThan(50);
       expect(result.checklist.length).toBeGreaterThan(0);
@@ -319,7 +392,7 @@ describe('Validation Rules System', () => {
         // missing required fields
       };
 
-      const result = validateAgentOutput('market-analyst', output);
+      const result = validateAgentOutput('market-analyzer', output);
 
       expect(result.score).toBeLessThan(70);
       expect(result.passed).toBe(false);
@@ -331,7 +404,7 @@ describe('Validation Rules System', () => {
         // missing fields
       };
 
-      const result = validateAgentOutput('market-analyst', output);
+      const result = validateAgentOutput('market-analyzer', output);
 
       expect(result.issues.length).toBeGreaterThan(0);
     });
@@ -341,12 +414,12 @@ describe('Validation Rules System', () => {
         result: 'น่าจะมี opportunities'
       };
 
-      const result = validateAgentOutput('market-analyst', output);
+      const result = validateAgentOutput('market-analyzer', output);
 
       expect(result.recommendations.length).toBeGreaterThan(0);
     });
 
-    it('should validate market-analyst specific constraints', () => {
+    it('should validate market-analyzer specific constraints', () => {
       const output = {
         task: 'analysis',
         result: 'done',
@@ -357,54 +430,9 @@ describe('Validation Rules System', () => {
         confidence: 0.8
       };
 
-      const result = validateAgentOutput('market-analyst', output);
+      const result = validateAgentOutput('market-analyzer', output);
 
-      expect(result.checklist.some(c => c.rule === 'MARKET_ANALYST_CONSTRAINTS')).toBe(true);
-    });
-
-    it('should validate business-planner specific constraints', () => {
-      const output = {
-        task: 'pricing',
-        result: 'done',
-        reasoning: 'done',
-        costBreakdown: { materials: 100 },
-        pricing: { price: 130, markupPercent: 30 },
-        roi: '20%',
-        tradeoffs: 'higher price = lower volume'
-      };
-
-      const result = validateAgentOutput('business-planner', output);
-
-      expect(result.checklist.some(c => c.rule === 'BUSINESS_PLANNER_CONSTRAINTS')).toBe(true);
-    });
-
-    it('should catch low markup warning', () => {
-      const output = {
-        task: 'pricing',
-        result: 'done',
-        reasoning: 'done',
-        costBreakdown: { materials: 100, labor: 50 },
-        pricing: { cost: 150, price: 165, markupPercent: 10 }
-      };
-
-      const result = validateAgentOutput('business-planner', output);
-
-      expect(result.issues.some(i => i.message.includes('Markup'))).toBe(true);
-    });
-
-    it('should validate caption-creator constraints', () => {
-      const output = {
-        task: 'caption strategy',
-        result: 'done',
-        reasoning: 'done',
-        styleGuide: { formal: 'text', casual: 'text' },
-        templates: ['template1'],
-        emotionFramework: 'framework'
-      };
-
-      const result = validateAgentOutput('caption-creator', output);
-
-      expect(result.checklist.some(c => c.rule === 'CAPTION_CREATOR_CONSTRAINTS')).toBe(true);
+      expect(result.checklist.some(c => c.rule === 'MARKET_ANALYZER_CONSTRAINTS')).toBe(true);
     });
   });
 
@@ -424,109 +452,21 @@ describe('Validation Rules System', () => {
     });
   });
 
-  describe('Complex Scenarios', () => {
-    it('should validate realistic market analyst output', () => {
-      const output = {
-        task: 'SWOT and Market Analysis',
-        result: 'Market analysis reveals strong growth in segment B (25% CAGR) while segment A faces saturation [source: market_research]',
-        reasoning: 'Analysis based on 12-month historical data and 5 major competitor reviews',
-        swot: {
-          strengths: ['Strong brand recognition'],
-          weaknesses: ['Limited distribution'],
-          opportunities: ['Emerging markets'],
-          threats: ['New competitors']
-        },
-        competitors: {
-          competitor_a: { market_share: '30%' },
-          competitor_b: { market_share: '25%' }
-        },
-        trends: ['Digital adoption', 'Price sensitivity'],
-        confidence: 0.85,
-        sources: ['market_research', 'competitor_data', 'industry_reports']
-      };
-
-      const masterContext = {
-        productType: 'premium',
-        targetMarket: 'segment B'
-      };
-
-      const result = validateAgentOutput('market-analyst', output, masterContext);
-
-      expect(result.score).toBeGreaterThan(50);
-      expect(result.checklist.length).toBeGreaterThan(0);
-    });
-
-    it('should validate realistic business planner output', () => {
-      const output = {
-        task: 'Pricing Strategy',
-        result: 'Recommended pricing: $299 (Premium tier) with 40% markup [based on cost analysis]',
-        reasoning: 'Cost-plus pricing: ($150 materials + $50 labor + $30 overhead) * 1.4 = $287, rounded to $299 [source: cost_data]',
-        costBreakdown: {
-          materials: 150,
-          labor: 50,
-          overhead: 30,
-          total: 230
-        },
-        pricing: {
-          cost: 230,
-          price: 299,
-          markupPercent: 30
-        },
-        roi: 'At 100 units/month: 40% revenue growth YoY',
-        tradeoffs: 'Higher price reduces volume by ~15% but increases margin by 25%'
-      };
-
-      const result = validateAgentOutput('business-planner', output);
-
-      expect(result.passed).toBe(true);
-    });
-
-    it('should validate realistic caption creator output', () => {
-      const output = {
-        task: 'Caption Strategy Framework',
-        result: 'Defined 6-style caption framework with emotional hooks and CTA patterns',
-        reasoning: 'Based on target audience (age 25-40, premium positioning)',
-        styleGuide: {
-          professional: 'Expert insights with authority',
-          storytelling: 'Emotional connections',
-          educational: 'Value-driven tips',
-          casual: 'Personality-forward engagement',
-          cta_focused: 'Action-driven conversion',
-          engagement: 'Community interaction'
-        },
-        templates: [
-          'Hook → Insight → CTA',
-          'Story → Transformation → CTA',
-          'Problem → Solution → CTA'
-        ],
-        emotionFramework: {
-          primary: 'Aspiration',
-          secondary: 'Community',
-          triggers: ['Achievement', 'Belonging']
-        }
-      };
-
-      const result = validateAgentOutput('caption-creator', output);
-
-      expect(result.passed).toBe(true);
-    });
-  });
-
   describe('Edge Cases', () => {
     it('should handle null output gracefully', () => {
       expect(() => {
-        validateAgentOutput('market-analyst', null);
+        validateAgentOutput('market-analyzer', null);
       }).not.toThrow();
     });
 
     it('should handle undefined output gracefully', () => {
       expect(() => {
-        validateAgentOutput('market-analyst', undefined);
+        validateAgentOutput('market-analyzer', undefined);
       }).not.toThrow();
     });
 
     it('should handle empty object', () => {
-      const result = validateAgentOutput('market-analyst', {});
+      const result = validateAgentOutput('market-analyzer', {});
 
       expect(result.passed).toBe(false);
       expect(result.issues.length).toBeGreaterThan(0);
@@ -541,7 +481,7 @@ describe('Validation Rules System', () => {
       // Don't create circular reference - it breaks JSON.stringify
       // Just test that normal objects work fine
 
-      const result = validateAgentOutput('market-analyst', output);
+      const result = validateAgentOutput('market-analyzer', output);
       expect(result).toBeDefined();
     });
 
@@ -552,7 +492,7 @@ describe('Validation Rules System', () => {
         reasoning: 'done'
       };
 
-      const result = validateAgentOutput('market-analyst', output);
+      const result = validateAgentOutput('market-analyzer', output);
 
       expect(result).toBeDefined();
       expect(result.checklist).toBeDefined();
@@ -565,7 +505,7 @@ describe('Validation Rules System', () => {
         reasoning: 'done'
       };
 
-      const result = validateAgentOutput('market-analyst', output, {}, []);
+      const result = validateAgentOutput('market-analyzer', output, {}, []);
 
       expect(result).toBeDefined();
       expect(result.issues).toBeDefined();

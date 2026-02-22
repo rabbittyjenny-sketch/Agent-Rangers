@@ -20,7 +20,7 @@ export const mockConversations = [
       {
         role: 'agent',
         agentId: 'market-analyzer',
-        agentName: 'Market Analyst',
+        agentName: 'Market Analyzer',
         content: 'แล้ว! มาวิเคราะห์ SWOT ร้านกาแฟของเรากันนะ...'
       }
     ]
@@ -37,7 +37,7 @@ export const mockConversations = [
       {
         role: 'agent',
         agentId: 'visual-strategist',
-        agentName: 'Design Agent',
+        agentName: 'Visual Strategist',
         content: 'มาออกแบบโลโก้ที่สะท้อนบุคลิก Art Coffee Studio...'
       }
     ]
@@ -263,8 +263,8 @@ export const routingTestCases = [
   {
     input: 'คำนวณต้นทุนและตั้งราคา',
     expectedCluster: 'strategy',
-    expectedAgent: 'business-planner',
-    reason: 'Contains cost/pricing keyword - Business Planner'
+    expectedAgent: 'positioning-strategist',
+    reason: 'Contains cost/pricing keyword - Positioning Strategist'
   },
   {
     input: 'Color Palette สำหรับแบรนด์อาหาร',
@@ -275,8 +275,8 @@ export const routingTestCases = [
   {
     input: 'เขียนแคปชั่นให้หลายสไตล์',
     expectedCluster: 'growth',
-    expectedAgent: 'caption-creator',
-    reason: 'Contains caption keyword - Caption Creator'
+    expectedAgent: 'content-creator',
+    reason: 'Contains caption keyword - Content Creator'
   }
 ];
 

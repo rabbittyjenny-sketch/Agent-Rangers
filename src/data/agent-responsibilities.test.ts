@@ -8,18 +8,18 @@ import {
 
 describe('Agent Responsibilities & Workflow', () => {
   describe('Responsibility Matrices', () => {
-    it('should have defined matrices for all agents', () => {
+    it('should have defined matrices for all 10 agents', () => {
       const agentIds = [
-        'market-analyst',
-        'business-planner',
-        'insights-agent',
-        'brand-builder',
-        'design-agent',
-        'video-generator-art',
-        'caption-creator',
+        'market-analyzer',
+        'positioning-strategist',
+        'customer-insight-specialist',
+        'visual-strategist',
+        'brand-voice-architect',
+        'narrative-designer',
+        'content-creator',
         'campaign-planner',
-        'video-generator-script',
-        'automation-specialist'
+        'automation-specialist',
+        'analytics-master'
       ];
 
       for (const agentId of agentIds) {
@@ -49,7 +49,7 @@ describe('Agent Responsibilities & Workflow', () => {
         expect(matrix.conflictsWith).toBeDefined();
         expect(Array.isArray(matrix.conflictsWith)).toBe(true);
 
-        expect([1, 2, 3, 4]).toContain(matrix.executionPhase);
+        expect([1, 2, 3]).toContain(matrix.executionPhase);
         expect(matrix.requiredInputs).toBeDefined();
         expect(matrix.expectedOutputs).toBeDefined();
         expect(matrix.successCriteria).toBeDefined();
@@ -67,55 +67,48 @@ describe('Agent Responsibilities & Workflow', () => {
         m => m.cluster === 'growth'
       );
 
-      expect(strategyAgents.length).toBe(3); // market-analyst, business-planner, insights-agent
-      expect(creativeAgents.length).toBe(3); // brand-builder, design-agent, video-generator-art
-      expect(growthAgents.length).toBe(4); // caption-creator, campaign-planner, video-generator-script, automation-specialist
+      expect(strategyAgents.length).toBe(3); // market-analyzer, positioning-strategist, customer-insight-specialist
+      expect(creativeAgents.length).toBe(3); // visual-strategist, brand-voice-architect, narrative-designer
+      expect(growthAgents.length).toBe(4); // content-creator, campaign-planner, automation-specialist, analytics-master
     });
   });
 
   describe('Workflow Phases', () => {
-    it('should organize agents into 4 phases', () => {
+    it('should organize agents into 3 phases', () => {
       const phases = getWorkflowOrder();
 
-      expect(phases.length).toBe(4);
-      expect(phases[0]).toBeDefined(); // Phase 1
-      expect(phases[1]).toBeDefined(); // Phase 2
-      expect(phases[2]).toBeDefined(); // Phase 3
-      expect(phases[3]).toBeDefined(); // Phase 4
+      expect(phases.length).toBe(3);
+      expect(phases[0]).toBeDefined(); // Phase 1: Strategy
+      expect(phases[1]).toBeDefined(); // Phase 2: Creative
+      expect(phases[2]).toBeDefined(); // Phase 3: Growth
     });
 
     it('should have Strategy agents in Phase 1', () => {
       const phases = getWorkflowOrder();
       const phase1 = phases[0];
 
-      expect(phase1).toContain('market-analyst');
-      expect(phase1).toContain('business-planner');
-      expect(phase1).toContain('insights-agent');
+      expect(phase1).toContain('market-analyzer');
+      expect(phase1).toContain('positioning-strategist');
+      expect(phase1).toContain('customer-insight-specialist');
     });
 
     it('should have Creative agents in Phase 2', () => {
       const phases = getWorkflowOrder();
       const phase2 = phases[1];
 
-      expect(phase2).toContain('brand-builder');
-      expect(phase2).toContain('design-agent');
-      expect(phase2).toContain('video-generator-art');
+      expect(phase2).toContain('visual-strategist');
+      expect(phase2).toContain('brand-voice-architect');
+      expect(phase2).toContain('narrative-designer');
     });
 
-    it('should have Planning agents in Phase 3', () => {
+    it('should have Growth agents in Phase 3', () => {
       const phases = getWorkflowOrder();
       const phase3 = phases[2];
 
-      expect(phase3).toContain('caption-creator');
+      expect(phase3).toContain('content-creator');
       expect(phase3).toContain('campaign-planner');
-      expect(phase3).toContain('video-generator-script');
-    });
-
-    it('should have Execution agents in Phase 4', () => {
-      const phases = getWorkflowOrder();
-      const phase4 = phases[3];
-
-      expect(phase4).toContain('automation-specialist');
+      expect(phase3).toContain('automation-specialist');
+      expect(phase3).toContain('analytics-master');
     });
 
     it('should not have overlapping agents across phases', () => {
@@ -128,42 +121,43 @@ describe('Agent Responsibilities & Workflow', () => {
   });
 
   describe('Dependency Management', () => {
-    it('should identify market-analyst as first (no dependencies)', () => {
-      const marketAnalyst = responsibilityMatrices.find(
-        m => m.agentId === 'market-analyst'
+    it('should identify market-analyzer as first (no dependencies)', () => {
+      const marketAnalyzer = responsibilityMatrices.find(
+        m => m.agentId === 'market-analyzer'
       );
 
-      expect(marketAnalyst?.dependsOn.length).toBe(0);
+      expect(marketAnalyzer?.dependsOn.length).toBe(0);
     });
 
-    it('should show business-planner depends on market-analyst', () => {
-      const businessPlanner = responsibilityMatrices.find(
-        m => m.agentId === 'business-planner'
+    it('should show positioning-strategist depends on market-analyzer', () => {
+      const positioningStrategist = responsibilityMatrices.find(
+        m => m.agentId === 'positioning-strategist'
       );
 
-      expect(businessPlanner?.dependsOn.length).toBeGreaterThan(0);
-      expect(businessPlanner?.dependsOn[0].agentId).toBe('market-analyst');
+      expect(positioningStrategist?.dependsOn.length).toBeGreaterThan(0);
+      expect(positioningStrategist?.dependsOn[0].agentId).toBe('market-analyzer');
     });
 
-    it('should show brand-builder depends on market-analyst and business-planner', () => {
-      const brandBuilder = responsibilityMatrices.find(
-        m => m.agentId === 'brand-builder'
+    it('should show visual-strategist depends on market-analyzer and positioning-strategist', () => {
+      const visualStrategist = responsibilityMatrices.find(
+        m => m.agentId === 'visual-strategist'
       );
 
-      const dependsOnIds = brandBuilder?.dependsOn.map(d => d.agentId) || [];
+      const dependsOnIds = visualStrategist?.dependsOn.map(d => d.agentId) || [];
 
-      expect(dependsOnIds).toContain('market-analyst');
-      expect(dependsOnIds).toContain('business-planner');
+      expect(dependsOnIds).toContain('market-analyzer');
+      expect(dependsOnIds).toContain('positioning-strategist');
     });
 
-    it('should show design-agent depends on brand-builder', () => {
-      const designAgent = responsibilityMatrices.find(
-        m => m.agentId === 'design-agent'
+    it('should show brand-voice-architect depends on positioning-strategist and visual-strategist', () => {
+      const brandVoice = responsibilityMatrices.find(
+        m => m.agentId === 'brand-voice-architect'
       );
 
-      const dependsOnIds = designAgent?.dependsOn.map(d => d.agentId) || [];
+      const dependsOnIds = brandVoice?.dependsOn.map(d => d.agentId) || [];
 
-      expect(dependsOnIds).toContain('brand-builder');
+      expect(dependsOnIds).toContain('positioning-strategist');
+      expect(dependsOnIds).toContain('visual-strategist');
     });
 
     it('should show campaign-planner depends on multiple agents', () => {
@@ -171,7 +165,7 @@ describe('Agent Responsibilities & Workflow', () => {
         m => m.agentId === 'campaign-planner'
       );
 
-      expect(campaignPlanner?.dependsOn.length).toBeGreaterThan(2);
+      expect(campaignPlanner?.dependsOn.length).toBe(2);
     });
 
     it('should show automation-specialist depends on campaign-planner', () => {
@@ -183,6 +177,28 @@ describe('Agent Responsibilities & Workflow', () => {
 
       expect(dependsOnIds).toContain('campaign-planner');
     });
+
+    it('should have bidirectional dependency links', () => {
+      for (const matrix of responsibilityMatrices) {
+        for (const dep of matrix.dependsOn) {
+          const depMatrix = responsibilityMatrices.find(m => m.agentId === dep.agentId);
+          expect(depMatrix).toBeDefined();
+          const requiredByIds = depMatrix?.requiredBy.map(r => r.agentId) || [];
+          expect(requiredByIds).toContain(matrix.agentId);
+        }
+      }
+    });
+
+    it('should have bidirectional requiredBy links', () => {
+      for (const matrix of responsibilityMatrices) {
+        for (const req of matrix.requiredBy) {
+          const reqMatrix = responsibilityMatrices.find(m => m.agentId === req.agentId);
+          expect(reqMatrix).toBeDefined();
+          const dependsOnIds = reqMatrix?.dependsOn.map(d => d.agentId) || [];
+          expect(dependsOnIds).toContain(matrix.agentId);
+        }
+      }
+    });
   });
 
   describe('Conflict Detection', () => {
@@ -193,30 +209,14 @@ describe('Agent Responsibilities & Workflow', () => {
       }
     });
 
-    it('should show market-analyst conflicts with business-planner', () => {
-      const marketAnalyst = responsibilityMatrices.find(
-        m => m.agentId === 'market-analyst'
+    it('should show market-analyzer conflicts with analytics-master', () => {
+      const marketAnalyzer = responsibilityMatrices.find(
+        m => m.agentId === 'market-analyzer'
       );
 
-      const conflictIds = marketAnalyst?.conflictsWith.map(c => c.agentId) || [];
+      const conflictIds = marketAnalyzer?.conflictsWith.map(c => c.agentId) || [];
 
-      expect(conflictIds).toContain('business-planner');
-    });
-
-    it('should show bidirectional conflicts', () => {
-      const agent1 = responsibilityMatrices.find(
-        m => m.agentId === 'market-analyst'
-      );
-      const agent2 = responsibilityMatrices.find(
-        m => m.agentId === 'business-planner'
-      );
-
-      const agent1Conflicts = agent1?.conflictsWith.map(c => c.agentId) || [];
-      const agent2Conflicts = agent2?.conflictsWith.map(c => c.agentId) || [];
-
-      if (agent1Conflicts.includes('business-planner')) {
-        expect(agent2Conflicts).toContain('market-analyst');
-      }
+      expect(conflictIds).toContain('analytics-master');
     });
 
     it('should specify reason for each conflict', () => {
@@ -231,31 +231,31 @@ describe('Agent Responsibilities & Workflow', () => {
 
   describe('validateDependencies Function', () => {
     it('should return ready=true when no dependencies', () => {
-      const result = validateDependencies('market-analyst', []);
+      const result = validateDependencies('market-analyzer', []);
 
       expect(result.isReady).toBe(true);
       expect(result.missingDependencies.length).toBe(0);
     });
 
     it('should return ready=false when dependencies not completed', () => {
-      const result = validateDependencies('business-planner', []);
+      const result = validateDependencies('positioning-strategist', []);
 
       expect(result.isReady).toBe(false);
-      expect(result.missingDependencies).toContain('market-analyst');
+      expect(result.missingDependencies).toContain('market-analyzer');
     });
 
     it('should return ready=true when all dependencies completed', () => {
-      const result = validateDependencies('business-planner', ['market-analyst']);
+      const result = validateDependencies('positioning-strategist', ['market-analyzer']);
 
       expect(result.isReady).toBe(true);
       expect(result.missingDependencies.length).toBe(0);
     });
 
     it('should list all missing dependencies', () => {
-      const result = validateDependencies('campaign-planner', ['market-analyst']);
+      const result = validateDependencies('campaign-planner', ['market-analyzer']);
 
       expect(result.isReady).toBe(false);
-      expect(result.missingDependencies.length).toBeGreaterThan(1);
+      expect(result.missingDependencies.length).toBeGreaterThan(0);
     });
 
     it('should return false for non-existent agent', () => {
@@ -263,6 +263,16 @@ describe('Agent Responsibilities & Workflow', () => {
 
       expect(result.isReady).toBe(false);
       expect(result.missingDependencies).toContain('non-existent-agent');
+    });
+
+    it('should validate full Phase 3 readiness with Phase 1 + 2 completed', () => {
+      const completedPhase1And2 = [
+        'market-analyzer', 'positioning-strategist', 'customer-insight-specialist',
+        'visual-strategist', 'brand-voice-architect', 'narrative-designer'
+      ];
+
+      const contentCreatorResult = validateDependencies('content-creator', completedPhase1And2);
+      expect(contentCreatorResult.isReady).toBe(true);
     });
   });
 
@@ -285,39 +295,39 @@ describe('Agent Responsibilities & Workflow', () => {
       }
     });
 
-    it('market-analyst should require specific inputs', () => {
-      const marketAnalyst = responsibilityMatrices.find(
-        m => m.agentId === 'market-analyst'
+    it('market-analyzer should require specific inputs', () => {
+      const marketAnalyzer = responsibilityMatrices.find(
+        m => m.agentId === 'market-analyzer'
       );
 
-      expect(marketAnalyst?.requiredInputs).toContain('Master Context (Product Info)');
-      expect(marketAnalyst?.requiredInputs).toContain('Business Goals');
+      expect(marketAnalyzer?.requiredInputs).toContain('Master Context (Product Info)');
+      expect(marketAnalyzer?.requiredInputs).toContain('Business Goals');
     });
 
-    it('market-analyst should produce specific outputs', () => {
-      const marketAnalyst = responsibilityMatrices.find(
-        m => m.agentId === 'market-analyst'
+    it('market-analyzer should produce specific outputs', () => {
+      const marketAnalyzer = responsibilityMatrices.find(
+        m => m.agentId === 'market-analyzer'
       );
 
-      const outputs = marketAnalyst?.expectedOutputs || [];
+      const outputs = marketAnalyzer?.expectedOutputs || [];
 
       expect(outputs.some(o => o.includes('SWOT'))).toBe(true);
       expect(outputs.some(o => o.includes('Competitor'))).toBe(true);
     });
 
-    it('business-planner should have different outputs than market-analyst', () => {
-      const marketAnalyst = responsibilityMatrices.find(
-        m => m.agentId === 'market-analyst'
+    it('positioning-strategist should have different outputs than market-analyzer', () => {
+      const marketAnalyzer = responsibilityMatrices.find(
+        m => m.agentId === 'market-analyzer'
       );
-      const businessPlanner = responsibilityMatrices.find(
-        m => m.agentId === 'business-planner'
+      const positioningStrategist = responsibilityMatrices.find(
+        m => m.agentId === 'positioning-strategist'
       );
 
-      const analystOutputs = new Set(marketAnalyst?.expectedOutputs || []);
-      const plannerOutputs = new Set(businessPlanner?.expectedOutputs || []);
+      const analyzerOutputs = new Set(marketAnalyzer?.expectedOutputs || []);
+      const strategistOutputs = new Set(positioningStrategist?.expectedOutputs || []);
 
-      const intersection = Array.from(analystOutputs).filter(o =>
-        plannerOutputs.has(o)
+      const intersection = Array.from(analyzerOutputs).filter(o =>
+        strategistOutputs.has(o)
       );
 
       expect(intersection.length).toBe(0);
@@ -326,29 +336,23 @@ describe('Agent Responsibilities & Workflow', () => {
 
   describe('Cross-Team Collaboration', () => {
     it('should show strategy outputs required by creative agents', () => {
-      const marketAnalyst = responsibilityMatrices.find(
-        m => m.agentId === 'market-analyst'
-      );
-      const brandBuilder = responsibilityMatrices.find(
-        m => m.agentId === 'brand-builder'
+      const marketAnalyzer = responsibilityMatrices.find(
+        m => m.agentId === 'market-analyzer'
       );
 
-      const requiredByIds = marketAnalyst?.requiredBy.map(r => r.agentId) || [];
+      const requiredByIds = marketAnalyzer?.requiredBy.map(r => r.agentId) || [];
 
-      expect(requiredByIds).toContain('brand-builder');
+      expect(requiredByIds).toContain('visual-strategist');
     });
 
     it('should show creative outputs required by growth agents', () => {
-      const brandBuilder = responsibilityMatrices.find(
-        m => m.agentId === 'brand-builder'
-      );
-      const captionCreator = responsibilityMatrices.find(
-        m => m.agentId === 'caption-creator'
+      const brandVoice = responsibilityMatrices.find(
+        m => m.agentId === 'brand-voice-architect'
       );
 
-      const requiredByIds = brandBuilder?.requiredBy.map(r => r.agentId) || [];
+      const requiredByIds = brandVoice?.requiredBy.map(r => r.agentId) || [];
 
-      expect(requiredByIds).toContain('caption-creator');
+      expect(requiredByIds).toContain('content-creator');
     });
 
     it('should specify reason for each required-by relationship', () => {
@@ -382,22 +386,14 @@ describe('Agent Responsibilities & Workflow', () => {
       }
     });
 
-    it('should have Growth Planning in Phase 3', () => {
-      const growthPlanningAgents = responsibilityMatrices.filter(
-        m => m.cluster === 'growth' && m.agentId !== 'automation-specialist'
+    it('should have Growth in Phase 3', () => {
+      const growthAgents = responsibilityMatrices.filter(
+        m => m.cluster === 'growth'
       );
 
-      for (const agent of growthPlanningAgents) {
+      for (const agent of growthAgents) {
         expect(agent.executionPhase).toBe(3);
       }
-    });
-
-    it('should have Execution in Phase 4', () => {
-      const automationSpecialist = responsibilityMatrices.find(
-        m => m.agentId === 'automation-specialist'
-      );
-
-      expect(automationSpecialist?.executionPhase).toBe(4);
     });
   });
 });

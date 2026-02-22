@@ -13,10 +13,17 @@ describe('Agent Routing System', () => {
   describe('Job Classification', () => {
     it('should have all job types mapped', () => {
       const jobTypes = Object.keys(jobClassification);
-      expect(jobTypes.length).toBeGreaterThan(0);
+      expect(jobTypes.length).toBe(10);
       expect(jobTypes).toContain('MARKET_ANALYSIS');
-      expect(jobTypes).toContain('FINANCIAL_PLANNING');
+      expect(jobTypes).toContain('POSITIONING_STRATEGY');
+      expect(jobTypes).toContain('CUSTOMER_INSIGHTS');
+      expect(jobTypes).toContain('VISUAL_DESIGN');
+      expect(jobTypes).toContain('BRAND_VOICE');
+      expect(jobTypes).toContain('NARRATIVE_STORY');
       expect(jobTypes).toContain('CONTENT_STRATEGY');
+      expect(jobTypes).toContain('CAMPAIGN_PLANNING');
+      expect(jobTypes).toContain('AUTOMATION_SETUP');
+      expect(jobTypes).toContain('ANALYTICS_MEASUREMENT');
     });
 
     it('should have keywords for each job type', () => {
@@ -37,7 +44,7 @@ describe('Agent Routing System', () => {
   });
 
   describe('Smart Routing (findBestRoute)', () => {
-    it('should route market analysis request to market-analyst', () => {
+    it('should route market analysis request to market-analyzer', () => {
       const request: JobRequest = {
         intent: 'analyze market opportunities',
         keywords: ['market', 'competitor', 'swot', 'analysis'],
@@ -46,47 +53,47 @@ describe('Agent Routing System', () => {
 
       const decision = findBestRoute(request);
 
-      expect(decision.primaryAgent).toBe('market-analyst');
+      expect(decision.primaryAgent).toBe('market-analyzer');
       expect(decision.confidence).toBeGreaterThan(0.3);
-      expect(decision.anticopycat.skipAgents).toContain('business-planner');
+      expect(decision.anticopycat.skipAgents).toContain('positioning-strategist');
     });
 
-    it('should route financial planning to business-planner', () => {
+    it('should route positioning to positioning-strategist', () => {
       const request: JobRequest = {
-        intent: 'calculate pricing and roi',
-        keywords: ['cost', 'pricing', 'roi', 'budget'],
+        intent: 'define brand positioning and value proposition',
+        keywords: ['positioning', 'usp', 'value', 'differentiation'],
         masterContext: {}
       };
 
       const decision = findBestRoute(request);
 
-      expect(decision.primaryAgent).toBe('business-planner');
+      expect(decision.primaryAgent).toBe('positioning-strategist');
       expect(decision.confidence).toBeGreaterThan(0.2);
     });
 
-    it('should route brand strategy to brand-builder', () => {
+    it('should route brand voice to brand-voice-architect', () => {
       const request: JobRequest = {
-        intent: 'define brand identity',
-        keywords: ['brand', 'identity', 'tone', 'mood'],
+        intent: 'define brand voice and tone',
+        keywords: ['tone', 'voice', 'brand', 'personality'],
         masterContext: {}
       };
 
       const decision = findBestRoute(request);
 
-      expect(decision.primaryAgent).toBe('brand-builder');
+      expect(decision.primaryAgent).toBe('brand-voice-architect');
       expect(decision.confidence).toBeGreaterThan(0.3);
     });
 
-    it('should route content strategy to caption-creator', () => {
+    it('should route content strategy to content-creator', () => {
       const request: JobRequest = {
         intent: 'plan caption styles',
-        keywords: ['caption', 'copy', 'style', 'hook'],
+        keywords: ['caption', 'copy', 'content', 'hook'],
         masterContext: {}
       };
 
       const decision = findBestRoute(request);
 
-      expect(decision.primaryAgent).toBe('caption-creator');
+      expect(decision.primaryAgent).toBe('content-creator');
       expect(decision.confidence).toBeGreaterThan(0.3);
     });
 
@@ -104,8 +111,8 @@ describe('Agent Routing System', () => {
 
     it('should include secondary agents when relevant', () => {
       const request: JobRequest = {
-        intent: 'analyze market and plan pricing',
-        keywords: ['market', 'competitor', 'cost', 'pricing'],
+        intent: 'analyze market and plan positioning',
+        keywords: ['market', 'competitor', 'positioning', 'value'],
         masterContext: {}
       };
 
@@ -164,7 +171,7 @@ describe('Agent Routing System', () => {
         reasoning: 'based on competitor data'
       };
 
-      const validation = validateAgentOutput('market-analyst', output);
+      const validation = validateAgentOutput('market-analyzer', output);
 
       expect(validation.isValid).toBe(true);
       expect(validation.confidence).toBeGreaterThan(0.5);
@@ -176,7 +183,7 @@ describe('Agent Routing System', () => {
         // missing result and reasoning
       };
 
-      const validation = validateAgentOutput('market-analyst', output);
+      const validation = validateAgentOutput('market-analyzer', output);
 
       expect(validation.isValid).toBe(false);
       expect(validation.issues.length).toBeGreaterThan(0);
@@ -189,7 +196,7 @@ describe('Agent Routing System', () => {
         // missing reasoning
       };
 
-      const validation = validateAgentOutput('market-analyst', output);
+      const validation = validateAgentOutput('market-analyzer', output);
 
       expect(validation.isValid).toBe(false);
     });
@@ -201,7 +208,7 @@ describe('Agent Routing System', () => {
         // missing result
       };
 
-      const validation = validateAgentOutput('market-analyst', output);
+      const validation = validateAgentOutput('market-analyzer', output);
 
       expect(validation.isValid).toBe(false);
     });
@@ -218,7 +225,7 @@ describe('Agent Routing System', () => {
         sources: ['market_data']
       };
 
-      const validation = validateAgentOutput('market-analyst', output);
+      const validation = validateAgentOutput('market-analyzer', output);
 
       expect(validation).toBeDefined();
       expect(validation.confidence).toBeGreaterThanOrEqual(0);
@@ -235,7 +242,7 @@ describe('Agent Routing System', () => {
 
       const previousOutputs = [
         {
-          agentId: 'market-analyst',
+          agentId: 'market-analyzer',
           output: {
             intent: 'market analysis',
             result: 'market opportunities found'
@@ -247,7 +254,7 @@ describe('Agent Routing System', () => {
       const result = detectDuplicateWork(currentRequest, previousOutputs);
 
       expect(result.isDuplicate).toBe(true);
-      expect(result.duplicateAgents).toContain('market-analyst');
+      expect(result.duplicateAgents).toContain('market-analyzer');
     });
 
     it('should not detect duplicate if no previous outputs', () => {
@@ -265,14 +272,14 @@ describe('Agent Routing System', () => {
 
     it('should not detect duplicate if different intent', () => {
       const currentRequest: JobRequest = {
-        intent: 'pricing strategy',
-        keywords: ['cost', 'pricing'],
+        intent: 'positioning strategy',
+        keywords: ['positioning', 'value'],
         masterContext: {}
       };
 
       const previousOutputs = [
         {
-          agentId: 'market-analyst',
+          agentId: 'market-analyzer',
           output: {
             intent: 'market analysis',
             result: 'market analysis done'
@@ -288,18 +295,18 @@ describe('Agent Routing System', () => {
   });
 
   describe('Agent Responsibilities', () => {
-    it('should define responsibilities for each agent', () => {
+    it('should define responsibilities for all 10 agents', () => {
       const expectedAgents = [
-        'market-analyst',
-        'business-planner',
-        'insights-agent',
-        'brand-builder',
-        'design-agent',
-        'video-generator-art',
-        'caption-creator',
+        'market-analyzer',
+        'positioning-strategist',
+        'customer-insight-specialist',
+        'visual-strategist',
+        'brand-voice-architect',
+        'narrative-designer',
+        'content-creator',
         'campaign-planner',
-        'video-generator-script',
-        'automation-specialist'
+        'automation-specialist',
+        'analytics-master'
       ];
 
       for (const agentId of expectedAgents) {
@@ -312,18 +319,18 @@ describe('Agent Routing System', () => {
     });
 
     it('should not allow responsible agents to do conflicting tasks', () => {
-      const marketAnalyst = agentResponsibilities['market-analyst'];
+      const marketAnalyzer = agentResponsibilities['market-analyzer'];
 
-      expect(marketAnalyst.cannotDo).toContain('Financial Calculation');
-      expect(marketAnalyst.cannotDo).toContain('Design');
-      expect(marketAnalyst.cannotDo).toContain('Content Creation');
+      expect(marketAnalyzer.cannotDo).toContain('Positioning Strategy');
+      expect(marketAnalyzer.cannotDo).toContain('Design');
+      expect(marketAnalyzer.cannotDo).toContain('Content Creation');
     });
 
     it('should define collaboration relationships', () => {
-      const businessPlanner = agentResponsibilities['business-planner'];
+      const positioningStrategist = agentResponsibilities['positioning-strategist'];
 
-      expect(businessPlanner.canCollaborate).toContain('market-analyst');
-      expect(businessPlanner.canCollaborate).toContain('insights-agent');
+      expect(positioningStrategist.canCollaborate).toContain('market-analyzer');
+      expect(positioningStrategist.canCollaborate).toContain('customer-insight-specialist');
     });
   });
 
@@ -350,8 +357,8 @@ describe('Agent Routing System', () => {
 
     it('should not have duplicate secondary agents', () => {
       const request: JobRequest = {
-        intent: 'market and financial analysis',
-        keywords: ['market', 'competitor', 'cost', 'pricing', 'roi'],
+        intent: 'market and positioning analysis',
+        keywords: ['market', 'competitor', 'positioning', 'value', 'usp'],
         masterContext: {}
       };
 
